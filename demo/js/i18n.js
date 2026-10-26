@@ -55,6 +55,8 @@ export const UI = {
   plea: { ko: '제가 말을 못 하면 이 정보를 봐 주세요', zh: '如果我无法说话，请查看这些信息', en: "If I can't speak, please read this", ru: 'Если я не могу говорить, прочитайте это' },
   save_lock: { ko: '잠금화면용 이미지로 저장', zh: '保存为锁屏图片', en: 'Save as lock-screen image', ru: 'Сохранить для экрана блокировки' },
   making: { ko: '만드는 중…', zh: '生成中…', en: 'Preparing…', ru: 'Готовим…' },
+  restored: { ko: '월렛 카드의 내 기록을 불러왔어요.', zh: '已载入钱包卡中的记录。', en: 'Loaded your record from your Wallet card.', ru: 'Ваша запись из карты Wallet загружена.' },
+  restore_fail: { ko: '카드의 기록을 열지 못했어요. 카드를 다시 받아 주세요.', zh: '无法打开卡中的记录，请重新获取卡片。', en: 'Could not open the record on your card. Please get the card again.', ru: 'Не удалось открыть запись с карты. Получите карту заново.' },
   saved_img: { ko: '이미지를 만들었어요. 사진에 저장한 뒤 잠금화면으로 지정하세요.', zh: '图片已生成。保存到相册后设为锁屏壁纸。', en: 'Image ready. Save it to Photos and set it as your lock screen.', ru: 'Изображение готово. Сохраните его в фото и поставьте на экран блокировки.' },
   save_fail: { ko: '이미지를 만들지 못했어요. 이 화면을 캡처해 주세요.', zh: '无法生成图片，请截屏保存此页面。', en: 'Could not make the image. Take a screenshot of this screen instead.', ru: 'Не удалось создать изображение. Сделайте снимок экрана.' },
   install: { ko: '홈 화면에 추가하면 인터넷 없이도 응급 카드를 열 수 있어요.', zh: '添加到主屏幕后，没有网络也能打开急救卡。', en: 'Add this page to your home screen to open the emergency card offline.', ru: 'Добавьте страницу на главный экран, чтобы открывать карту без интернета.' },

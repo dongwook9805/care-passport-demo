@@ -60,6 +60,7 @@ async function route() {
     window.scrollTo(0, 0);
     return;
   }
+  if (h.startsWith('/me/')) { await restore(h.slice(4)); return; }
   state.fromPatient = false;
   if (!state.pid && h !== '/start') { location.replace('#/start'); return; }
   setChrome(state.lang, false);
@@ -73,6 +74,24 @@ async function route() {
   root.innerHTML = html;
   window.scrollTo(0, 0);
   if (h === '/share') prepareShare(id);
+}
+
+// "#/me/<data>": the "My record" link on the back of a Wallet card. It carries the patient's own record,
+// so it opens on any phone, even one that never used the demo. Demo only: it maps back to a sample patient.
+async function restore(link) {
+  let ok = false;
+  try {
+    const data = await decode(link);
+    const pid = Object.keys(PATIENTS).find(k => PATIENTS[k].name_en === data.patient.name_en && PATIENTS[k].birth === data.patient.birth);
+    if (pid) {
+      state.pid = pid;
+      state.self = data.self || clone(PATIENTS[pid].self);
+      if (LANGS.includes(data.patient.lang)) state.lang = data.patient.lang;
+      save(); ok = true;
+    }
+  } catch (e) { /* fall through */ }
+  location.replace(state.pid ? '#/' : '#/start');
+  toast(ok ? UI.restored[state.lang] : UI.restore_fail[state.lang]);
 }
 
 function rerender() { const y = window.scrollY; route().then(() => window.scrollTo(0, y)); }
