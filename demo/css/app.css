@@ -42,6 +42,7 @@ h1 { font-size: 20px; }
 h1.big { font-size: 24px; }
 h2 { font-size: 14px; font-weight: 600; }
 p { margin: 0; }
+:lang(ko) { word-break: keep-all; overflow-wrap: anywhere; }
 .mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
 .small { font-size: 13px; }
 .muted { color: var(--muted); }

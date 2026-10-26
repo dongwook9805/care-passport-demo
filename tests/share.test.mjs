@@ -1,9 +1,9 @@
 // Run: node --test prototype/web/tests/share.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPayload, encode, decode, expand } from '../js/share.js';
-import { PATIENTS } from '../js/demo-data.js';
-import { doctor } from '../js/views.js';
+import { buildPayload, encode, decode, expand } from '../demo/js/share.js';
+import { PATIENTS } from '../demo/js/demo-data.js';
+import { doctor } from '../demo/js/views.js';
 
 test('every sample patient survives encode → decode in every scope', async () => {
   for (const p of Object.values(PATIENTS)) {

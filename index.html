@@ -6,22 +6,124 @@
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0C6A63">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; frame-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <title>K-CARE LINK</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="demo/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="demo/icons/icon-192.png">
+<link rel="stylesheet" href="home/home.css">
+<script src="home/redirect.js"></script>
 </head>
 <body>
-<header class="top">
-  <span class="brand" id="brand">K-CARE LINK</span>
-  <span class="demo" id="demo">Demo · sample data</span>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" data-name>K-CARE LINK</a>
+    <nav class="links" aria-label="Sections">
+      <a href="#how" data-t="nav_how">How it works</a>
+      <a href="#fields" data-t="nav_fields">Fields</a>
+      <a href="#clinics" data-t="nav_clinics">For clinics</a>
+    </nav>
+    <div class="langs" id="langs" role="group" aria-label="Language"></div>
+  </div>
 </header>
-<main id="app" class="app" aria-live="polite"></main>
-<div class="toast" id="toast" role="status" hidden></div>
-<noscript><p class="app">This demo needs JavaScript.</p></noscript>
-<script src="js/vendor/qrcode.js"></script>
-<script type="module" src="js/app.js"></script>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-in">
+      <div class="hero-text">
+        <p class="stage" data-t="stage">In development · pilot stage</p>
+        <h1 data-t="h1">Treatment you received in Korea, continued wherever you go</h1>
+        <p class="lede" data-t="sub"></p>
+        <div class="try-box">
+          <h2 data-t="try_h">Try it now with a sample patient</h2>
+          <ol class="try-steps">
+            <li data-t="try_1"></li>
+            <li data-t="try_2"></li>
+            <li data-t="try_3"></li>
+          </ol>
+          <p class="note" data-t="try_note"></p>
+        </div>
+        <div class="phone-qr" id="phone-qr">
+          <div class="qr" id="qr" aria-hidden="true"></div>
+          <div>
+            <b data-t="open_phone">Open on your phone</b>
+            <p class="note mono" id="demo-url"></p>
+          </div>
+        </div>
+      </div>
+      <div class="device">
+        <div class="phone">
+          <iframe id="demo-frame" title="Demo" allow="clipboard-write; web-share"></iframe>
+        </div>
+        <a class="btn" id="open-full" href="demo/" data-t="open_full">Open full screen</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="how">
+    <div class="wrap">
+      <h2 class="h2" data-t="how_h">How it works</h2>
+      <ol class="steps">
+        <li><span class="num">1</span><h3 data-t="s1_t"></h3><p data-t="s1_d"></p></li>
+        <li><span class="num">2</span><h3 data-t="s2_t"></h3><p data-t="s2_d"></p></li>
+        <li><span class="num">3</span><h3 data-t="s3_t"></h3><p data-t="s3_d"></p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="band alt" id="fields">
+    <div class="wrap">
+      <h2 class="h2" data-t="fields_h">Starting with dentistry, growing into medicine</h2>
+      <div class="fields">
+        <article class="field now"><div class="fh"><h3 data-t="f_dental"></h3><span class="pill now" data-t="f_dental_s"></span></div><p data-t="f_dental_d"></p></article>
+        <article class="field"><div class="fh"><h3 data-t="f_aes"></h3><span class="pill" data-t="f_aes_s"></span></div><p data-t="f_aes_d"></p></article>
+        <article class="field"><div class="fh"><h3 data-t="f_med"></h3><span class="pill" data-t="f_med_s"></span></div><p data-t="f_med_d"></p></article>
+      </div>
+      <p class="note" data-t="fields_note"></p>
+    </div>
+  </section>
+
+  <section class="band" id="data">
+    <div class="wrap">
+      <h2 class="h2" data-t="data_h">Your record, your choice</h2>
+      <ul class="principles">
+        <li><h3 data-t="d1_t"></h3><p data-t="d1_d"></p></li>
+        <li><h3 data-t="d2_t"></h3><p data-t="d2_d"></p></li>
+        <li><h3 data-t="d3_t"></h3><p data-t="d3_d"></p></li>
+      </ul>
+      <p class="note" data-t="d_demo"></p>
+    </div>
+  </section>
+
+  <section class="band alt" id="clinics">
+    <div class="wrap two">
+      <div>
+        <h2 class="h2" data-t="clinics_h">For clinics in Korea</h2>
+        <ul class="checks">
+          <li data-t="c1"></li>
+          <li data-t="c2"></li>
+          <li data-t="c3"></li>
+        </ul>
+      </div>
+      <div class="cta">
+        <p class="cta-t" data-t="clinics_cta"></p>
+        <p class="note" id="contact"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="team">
+    <div class="wrap">
+      <h2 class="h2" data-t="team_h">Who we are</h2>
+      <p class="team" data-t="team_d"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap"><p data-t="foot"></p></div>
+</footer>
+
+<script src="demo/js/vendor/qrcode.js"></script>
+<script type="module" src="home/home.js"></script>
 </body>
 </html>
