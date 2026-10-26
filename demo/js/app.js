@@ -60,7 +60,7 @@ async function route() {
     window.scrollTo(0, 0);
     return;
   }
-  if (h.startsWith('/me/')) { await restore(h.slice(4)); return; }
+  if (h.startsWith('/me/')) { const [link, to] = h.slice(4).split('/'); await restore(link, to === 'card' ? '#/card' : '#/'); return; }
   state.fromPatient = false;
   if (!state.pid && h !== '/start') { location.replace('#/start'); return; }
   setChrome(state.lang, false);
@@ -78,7 +78,8 @@ async function route() {
 
 // "#/me/<data>": the "My record" link on the back of a Wallet card. It carries the patient's own record,
 // so it opens on any phone, even one that never used the demo. Demo only: it maps back to a sample patient.
-async function restore(link) {
+// "#/me/<data>/card" opens the emergency card instead of the home screen.
+async function restore(link, dest) {
   let ok = false;
   try {
     const data = await decode(link);
@@ -90,7 +91,7 @@ async function restore(link) {
       save(); ok = true;
     }
   } catch (e) { /* fall through */ }
-  location.replace(state.pid ? '#/' : '#/start');
+  location.replace(state.pid ? dest : '#/start');
   toast(ok ? UI.restored[state.lang] : UI.restore_fail[state.lang]);
 }
 

@@ -1,7 +1,7 @@
 // Offline cache for the app shell. Network first, so a phone always gets the latest files when it is online;
 // the cache is only used when the network fails or is too slow, which keeps the emergency card working offline.
 // Bump VERSION when files change so old caches are dropped.
-const VERSION = 'kcl-v6';
+const VERSION = 'kcl-v7';
 const FILES = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/views.js', 'js/i18n.js', 'js/demo-data.js', 'js/share.js', 'js/card-image.js', 'js/vendor/qrcode.js',
