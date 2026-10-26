@@ -46,7 +46,5 @@ export const HOME = {
   c3: { en: 'Prevent misunderstandings abroad with a clear record of what was done.', zh: '用清楚的记录避免在国外产生误解。', ru: 'Чёткая запись о лечении предотвращает недоразумения за рубежом.', ko: '해외에서 생길 오해를 정확한 기록으로 막습니다.' },
   clinics_cta: { en: 'We are looking for pilot clinics.', zh: '我们正在寻找试点医疗机构。', ru: 'Мы ищем клиники для пилотного проекта.', ko: '시범 운영에 함께할 병원을 찾고 있습니다.' },
   contact_pending: { en: 'Contact details coming soon.', zh: '联系方式即将公布。', ru: 'Контакты скоро появятся.', ko: '문의 창구를 준비하고 있습니다.' },
-  team_h: { en: 'Who we are', zh: '我们是谁', ru: 'Кто мы', ko: '만드는 사람들' },
-  team_d: { en: 'Students at Pusan National University School of Dentistry and an engineer from KAIST, building from what we see in the clinic.', zh: '由釜山国立大学牙科学院的学生和KAIST出身的工程师共同打造，从临床一线出发。', ru: 'Студенты стоматологического факультета Пусанского национального университета и инженер из KAIST. Делаем сервис, исходя из того, что видим в клинике.', ko: '부산대학교 치의학전문대학원 학생과 KAIST 출신 개발자가 진료 현장에서 본 문제로 만들고 있습니다.' },
   foot: { en: 'Demo in development. Not medical advice and not a replacement for your official medical records. Sample data only.', zh: '开发中的演示版。不构成医疗建议，也不能替代正式病历。仅限虚拟数据。', ru: 'Демоверсия в разработке. Не является медицинской консультацией и не заменяет официальные медицинские документы. Только тестовые данные.', ko: '개발 중인 데모입니다. 의료 조언이 아니며 공식 진료 기록을 대신하지 않습니다. 가상 데이터만 씁니다.' }
 };

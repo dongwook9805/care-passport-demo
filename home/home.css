@@ -101,7 +101,6 @@ p { margin: 0; }
 .cta { border: 1px solid var(--line); border-radius: 12px; padding: 22px; background: var(--bg); display: grid; gap: 8px; }
 .cta-t { font-size: 18px; font-weight: 600; }
 .cta .note { margin-top: 0; }
-.team { font-size: 17px; max-width: 40em; }
 
 .foot { border-top: 1px solid var(--line); padding-block: 28px calc(env(safe-area-inset-bottom, 0px) + 28px); }
 .foot p { color: var(--muted); font-size: 13px; max-width: 60em; }
