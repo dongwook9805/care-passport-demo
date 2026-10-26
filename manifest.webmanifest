@@ -1,0 +1,14 @@
+{
+  "name": "K-CARE LINK (demo)",
+  "short_name": "K-CARE LINK",
+  "description": "Demo: a patient's medical passport for dental treatment received in Korea. Sample data only.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF2EF",
+  "theme_color": "#0C6A63",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
