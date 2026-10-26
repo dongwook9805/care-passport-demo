@@ -34,6 +34,14 @@ function chart(records, link) {
     jaw(UPPER) + '<div class="mid"></div>' + jaw(LOWER) + '</div>';
 }
 
+// Wallet passes are pre-signed for the sample patients (prototype/wallet/build-passes.mjs). Only Apple devices open .pkpass.
+const APPLE = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+function wallet(s) {
+  if (!APPLE) return '';
+  return '<a class="btn wallet block" href="wallet/' + s.pid + '.pkpass" type="application/vnd.apple.pkpass">' + t('wallet_add', s.lang) + '</a>' +
+    '<p class="sub center">' + t('wallet_note', s.lang) + '</p>';
+}
+
 function selfList(self, cat, l) {
   const ids = self[cat], custom = self.custom.filter(c => c.cat === cat);
   if (!ids.length && !custom.length) return '<span class="muted">' + UI.none[l] + '</span>';
@@ -71,6 +79,7 @@ export function home(s) {
     '<dt>' + t('contact', L) + '</dt><dd>' + esc(self.contact.name) + ' (' + REL[L] + ')<br><span class="mono">' + esc(self.contact.phone) + '</span></dd>' +
     '</dl><a class="link" href="#/edit">' + t('edit', L) + ' ›</a></div></section>' +
     '<div class="row2"><a class="btn primary" href="#/share">' + t('show_doctor', L) + '</a><a class="btn" href="#/card">' + t('em_card', L) + '</a></div>' +
+    wallet(s) +
     '<p class="sub center">' + t('install', L) + '</p>' +
     '<div class="row2 quiet"><a class="link" href="#/start">' + t('change_patient', L) + '</a><button type="button" class="link" data-act="reset">' + t('reset', L) + '</button></div>';
 }
@@ -137,7 +146,8 @@ export function card(s) {
     '<div><dt>' + lbl('conditions') + '</dt><dd>' + both('conditions') + '</dd></div>' +
     '<div><dt>' + lbl('contact') + '</dt><dd>' + esc(self.contact.name) + '<small class="mono">' + esc(self.contact.phone) + '</small></dd></div>' +
     '</dl></div>' +
-    '<button class="btn primary block" type="button" data-act="savecard">' + t('save_lock', A) + '</button>' +
+    wallet(s) +
+    '<button class="btn block" type="button" data-act="savecard">' + t('save_lock', A) + '</button>' +
     '<p class="sub center">' + t('install', A) + '</p>';
 }
 

@@ -1,7 +1,7 @@
 // Offline cache for the app shell. Serves from cache first and refreshes it in the background,
 // so the emergency card opens without a connection once the page has been opened.
 // Bump VERSION when files change so old caches are dropped.
-const VERSION = 'kcl-v2';
+const VERSION = 'kcl-v3';
 const FILES = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/views.js', 'js/i18n.js', 'js/demo-data.js', 'js/share.js', 'js/card-image.js', 'js/vendor/qrcode.js',

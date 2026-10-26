@@ -65,6 +65,7 @@ body.doc .app { max-width: 760px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; text-align: center; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 13px 14px; font-weight: 600; min-height: 48px; }
 .btn.primary { background: var(--teal); color: var(--teal-ink); border-color: var(--teal); }
 .btn.block { width: 100%; }
+.btn.wallet { background: #000000; color: #FFFFFF; border-color: #000000; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .row2.quiet { align-items: center; justify-items: center; }
 

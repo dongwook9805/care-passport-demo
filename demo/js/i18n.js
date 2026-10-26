@@ -58,6 +58,8 @@ export const UI = {
   saved_img: { ko: '이미지를 만들었어요. 사진에 저장한 뒤 잠금화면으로 지정하세요.', zh: '图片已生成。保存到相册后设为锁屏壁纸。', en: 'Image ready. Save it to Photos and set it as your lock screen.', ru: 'Изображение готово. Сохраните его в фото и поставьте на экран блокировки.' },
   save_fail: { ko: '이미지를 만들지 못했어요. 이 화면을 캡처해 주세요.', zh: '无法生成图片，请截屏保存此页面。', en: 'Could not make the image. Take a screenshot of this screen instead.', ru: 'Не удалось создать изображение. Сделайте снимок экрана.' },
   install: { ko: '홈 화면에 추가하면 인터넷 없이도 응급 카드를 열 수 있어요.', zh: '添加到主屏幕后，没有网络也能打开急救卡。', en: 'Add this page to your home screen to open the emergency card offline.', ru: 'Добавьте страницу на главный экран, чтобы открывать карту без интернета.' },
+  wallet_add: { ko: 'Apple 지갑에 추가', zh: '添加到 Apple 钱包', en: 'Add to Apple Wallet', ru: 'Добавить в Apple Wallet' },
+  wallet_note: { ko: '가상 환자의 카드입니다. 여기서 고친 내용은 카드에 들어가지 않아요.', zh: '这是虚拟患者的卡片，在这里修改的内容不会写入卡片。', en: "This is the sample patient's card. Changes you make here are not on the card.", ru: 'Это карта тестового пациента. Изменения, сделанные здесь, на карту не попадут.' },
   change_patient: { ko: '가상 환자 바꾸기', zh: '更换虚拟患者', en: 'Switch sample patient', ru: 'Сменить пациента' },
   reset: { ko: '데모 초기화', zh: '重置演示', en: 'Reset demo', ru: 'Сбросить демо' },
   reset_confirm: { ko: '한 번 더 누르면 초기화', zh: '再按一次重置', en: 'Tap again to reset', ru: 'Нажмите ещё раз' }
