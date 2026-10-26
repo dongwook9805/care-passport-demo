@@ -21,6 +21,8 @@ function apply() {
   document.querySelectorAll('[data-name]').forEach(el => { el.textContent = APP_NAME; });
   document.querySelectorAll('[data-t]').forEach(el => { const s = HOME[el.dataset.t]; if (s) el.textContent = s[lang]; });
   document.getElementById('contact').textContent = CONTACT || HOME.contact_pending[lang];
+  // Russian readers get the Russian-speaking sample patient's card; everyone else gets the Chinese patient's.
+  document.getElementById('wallet-home').href = 'demo/wallet/' + (lang === 'ru' ? 'aziz' : 'chen') + '.pkpass';
   document.getElementById('langs').innerHTML = LANGS.map(l =>
     '<button type="button" data-l="' + l + '" aria-pressed="' + (l === lang) + '">' + LANG_LABEL[l] + '</button>').join('');
 }
@@ -66,6 +68,9 @@ function drawQR() {
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * px, (r + quiet) * px, px, px);
   box.appendChild(canvas);
 }
+
+// Wallet passes open only on Apple devices (iPadOS reports itself as Macintosh).
+if (/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)) document.getElementById('wallet-box').hidden = false;
 
 apply();
 syncDemoLang();

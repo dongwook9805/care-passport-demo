@@ -38,7 +38,8 @@ function chart(records, link) {
 const APPLE = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
 function wallet(s) {
   if (!APPLE) return '';
-  return '<a class="btn wallet block" href="wallet/' + s.pid + '.pkpass" type="application/vnd.apple.pkpass">' + t('wallet_add', s.lang) + '</a>' +
+  // target="_top": inside the homepage's iframe, Safari only hands a pass to Wallet from a top-level navigation.
+  return '<a class="btn wallet block" href="wallet/' + s.pid + '.pkpass" target="_top" type="application/vnd.apple.pkpass">' + t('wallet_add', s.lang) + '</a>' +
     '<p class="sub center">' + t('wallet_note', s.lang) + '</p>';
 }
 

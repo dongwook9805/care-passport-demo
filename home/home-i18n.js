@@ -12,6 +12,8 @@ export const HOME = {
   try_2: { en: 'Tap “Show a doctor” to make a QR code.', zh: '点击“给医生看”生成二维码。', ru: 'Нажмите «Показать врачу», чтобы получить QR-код.', ko: '"의사에게 보여주기"를 누르면 QR이 만들어집니다.' },
   try_3: { en: 'Scan it with another phone to see what a doctor abroad sees. No app needed.', zh: '用另一部手机扫码，看看国外医生看到的页面。无需安装应用。', ru: 'Отсканируйте его другим телефоном: так страницу увидит врач за рубежом. Приложение не нужно.', ko: '다른 폰으로 찍으면 해외 의사가 보는 화면이 열립니다. 앱 설치는 필요 없어요.' },
   try_note: { en: 'Sample data only. Please do not enter real health information.', zh: '仅为虚拟数据，请勿填写真实健康信息。', ru: 'Только тестовые данные. Не вводите реальные сведения о здоровье.', ko: '가상 데이터만 씁니다. 실제 건강 정보는 넣지 마세요.' },
+  wallet_btn: { en: 'Add a sample card to Apple Wallet', zh: '把示例卡片添加到 Apple 钱包', ru: 'Добавить тестовую карту в Apple Wallet', ko: '가상 환자 카드를 Apple 지갑에 추가' },
+  wallet_hint: { en: 'A preview opens. Tap “Add” to keep it in Wallet, then show its QR code to a doctor.', zh: '会打开预览。点击“添加”即可存入钱包，之后把卡片上的二维码给医生看。', ru: 'Откроется предпросмотр. Нажмите «Добавить», чтобы сохранить карту в Wallet, и покажите её QR-код врачу.', ko: '미리보기가 뜨면 "추가"를 누르세요. 지갑에 들어간 카드의 QR을 의사에게 보여 주면 됩니다.' },
   open_phone: { en: 'Open on your phone', zh: '在手机上打开', ru: 'Открыть на телефоне', ko: '내 폰으로 열기' },
   open_full: { en: 'Open full screen', zh: '全屏打开', ru: 'Открыть на весь экран', ko: '전체 화면으로 열기' },
   how_h: { en: 'How it works', zh: '使用方法', ru: 'Как это работает', ko: '이용 방법' },
