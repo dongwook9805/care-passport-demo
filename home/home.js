@@ -53,11 +53,14 @@ function passHtml(p, L, qrId) {
     (qrId ? '<a class="pass-qr" id="' + qrId + '" target="_blank" rel="noopener" aria-label="Doctor view"></a><p class="pass-alt">DEMO · Sample data</p>' : '');
 }
 
-// Scene 1: the record the Korean clinic confirms. Scene 3: what the doctor abroad sees (always English).
-function clinicShot(p, L) {
-  return '<div class="mini"><div class="mini-h"><b>' + esc(p.name_en) + '</b><span class="tag">✓ ' + HOME.verified_short[L] + '</span></div>' +
-    p.records.map(r => '<div class="mini-r"><span class="mono">' + (r.tooth ? '#' + r.tooth : UI.full_mouth[L]) + '</span><span>' + (TERMS[r.proc] ? TERMS[r.proc][L] : esc(r.proc)) +
-      (r.material ? '<small>' + esc(r.material) + (r.lot ? ' · LOT ' + esc(r.lot) : '') + '</small>' : '') + '</span></div>').join('') + '</div>';
+// Scene 1: an example inquiry (planned feature) — the message in the patient's language, the summary in the page language.
+// Scene 3: what the doctor abroad sees (always English).
+function inboundShot(p, L) {
+  const from = p.lang.toUpperCase(), to = L.toUpperCase();
+  const row = k => '<div class="mini-r wide"><span>' + HOME[k][L] + '</span><span>' + HOME[k + '_v'][L] + '</span></div>';
+  return '<div class="mini"><div class="mini-h"><b>' + HOME.inq_new[L] + '</b><span class="tag en">' + (from === to ? from : from + ' → ' + to) + '</span></div>' +
+    '<p class="mini-msg" lang="' + p.lang + '">' + esc(HOME.inq_msg[p.lang]) + '<span class="mini-att">X-ray.jpg</span></p>' +
+    '<div class="mini-sum">' + HOME.inq_sum[L] + '</div>' + ['inq_c', 'inq_q'].map(row).join('') + '</div>';
 }
 function doctorShot(p) {
   const s = p.self;
@@ -71,7 +74,7 @@ let drawId = 0;
 async function drawCards() {
   const id = ++drawId, p = PATIENTS[pidFor(lang)];
   document.getElementById('pass').innerHTML = passHtml(p, lang, 'pass-qr');
-  document.getElementById('shot1').innerHTML = clinicShot(p, lang);
+  document.getElementById('shot1').innerHTML = inboundShot(p, lang);
   document.getElementById('shot2').innerHTML = '<div class="pass mini-pass">' + passHtml(p, lang, '') + '</div>';
   document.getElementById('shot3').innerHTML = doctorShot(p);
   // Same link the pass QR carries (no 24-hour expiry), so scanning the page shows the real doctor view.
@@ -136,6 +139,10 @@ function drawDemoQR() {
   const box = document.getElementById('qr');
   if (!qrCanvas(box, url, 4, 3)) box.hidden = true;
 }
+
+// Days until the amended Act takes effect: 27 May 2027, 00:00 in Korea (UTC+9).
+const LAUNCH = Date.UTC(2027, 4, 26, 15);
+document.getElementById('dday').textContent = 'D-' + Math.max(0, Math.ceil((LAUNCH - Date.now()) / 864e5));
 
 document.getElementById('wallet-home').hidden = !APPLE;
 document.getElementById('wallet-hint').hidden = !APPLE;
