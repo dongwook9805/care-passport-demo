@@ -3,6 +3,9 @@ import { PATIENTS } from './demo-data.js';
 import * as V from './views.js';
 import { buildPayload, encode, decode } from './share.js';
 import { cardBlob } from './card-image.js';
+import * as JV from './journey.js';
+import { J } from './journey-i18n.js';
+import * as F from './files.js';
 
 // ---------- state (patient data lives only in this browser) ----------
 const KEY = 'kcl-demo-v1';
@@ -16,9 +19,13 @@ function guessLang() {
 function validSelf(x) {
   return x && ['allergies', 'meds', 'conditions', 'custom'].every(k => Array.isArray(x[k])) && x.contact && typeof x.contact.name === 'string';
 }
+const KINDS = ['inquiry', 'check', 'msg'];
+function validInbox(x) {
+  return Array.isArray(x) ? x.filter(it => it && typeof it.id === 'string' && KINDS.includes(it.kind) && typeof it.at === 'number') : [];
+}
 function load() { try { return JSON.parse(localStorage.getItem(KEY) || 'null') || {}; } catch (e) { return {}; } }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ pid: state.pid, lang: state.lang, self: state.self, scope: state.scope })); } catch (e) { /* private mode: keep going in memory */ }
+  try { localStorage.setItem(KEY, JSON.stringify({ pid: state.pid, lang: state.lang, self: state.self, scope: state.scope, inbox: state.inbox })); } catch (e) { /* private mode: keep going in memory */ }
 }
 
 const saved = load();
@@ -27,11 +34,18 @@ const state = {
   lang: LANGS.includes(saved.lang) ? saved.lang : guessLang(),
   self: validSelf(saved.self) ? saved.self : null,
   scope: SCOPES.includes(saved.scope) ? saved.scope : 'all',
+  inbox: validInbox(saved.inbox),
+  draft: { tooth: null, files: [] },
+  draftFor: '',
+  cmp: [],
   docLang: 'en',
   fromPatient: false,
   shareUrl: ''
 };
 if (state.pid && !state.self) state.self = clone(PATIENTS[state.pid].self);
+// Demo: the sample clinic answers every message a few seconds later. Anything sent before a reload is answered now.
+const REPLY_MS = 3500;
+state.inbox.forEach(it => { if (!it.reply && Date.now() - it.at > REPLY_MS) it.reply = { at: it.at + REPLY_MS }; });
 
 // ---------- render ----------
 const root = document.getElementById('app');
@@ -64,16 +78,38 @@ async function route() {
   state.fromPatient = false;
   if (!state.pid && h !== '/start') { location.replace('#/start'); return; }
   setChrome(state.lang, false);
+  // Each form starts with an empty draft (picked tooth, attached photos).
+  const form = ['/ask', '/thread'].includes(h) || h.startsWith('/check') ? h : '';
+  if (form && state.draftFor !== form) { state.draft = { tooth: null, files: [] }; state.draftFor = form; }
+  if (!form) state.draftFor = '';
   let html;
   if (h === '/start') html = V.start(state);
+  else if (h === '/ask') html = JV.ask(state);
+  else if (h.startsWith('/sent/')) { const it = state.inbox.find(x => x.id === h.slice(6)); html = it ? JV.sent(state, it) : V.home(state, JV.panel(state)); }
+  else if (h.startsWith('/check')) { const [, , ri, cp] = h.split('/'); html = JV.check(state, parseInt(ri, 10), parseInt(cp, 10) || 0); }
+  else if (h === '/thread') { state.inbox.forEach(it => { if (it.reply) it.seen = true; }); save(); html = JV.thread(state); }
+  else if (h === '/clinic') html = JV.clinic(state);
+  else if (h === '/files') {
+    const list = await F.allFiles().catch(() => []);
+    state.cmp = state.cmp.filter(id => list.some(f => f.id === id));
+    html = JV.files(state, list);
+  }
+  else if (h.startsWith('/compare/')) {
+    const [a, b] = h.slice(9).split('/');
+    const [x, y] = await Promise.all([F.getFile(a).catch(() => null), F.getFile(b).catch(() => null)]);
+    html = JV.compare(state, x, y);
+  }
+  else if (h.startsWith('/photo/')) html = JV.photo(state, await F.getFile(h.slice(7)).catch(() => null));
   else if (h.startsWith('/detail/')) html = V.detail(state, parseInt(h.slice(8), 10) || 0);
   else if (h === '/edit') html = V.edit(state);
   else if (h === '/share') html = V.share(state);
   else if (h === '/card') html = V.card(state);
-  else html = V.home(state);
+  else html = V.home(state, JV.panel(state));
+  if (id !== renderId) return;
   root.innerHTML = html;
   window.scrollTo(0, 0);
   if (h === '/share') prepareShare(id);
+  hydrate();
 }
 
 // "#/me/<data>": the "My record" link on the back of a Wallet card. It carries the patient's own record,
@@ -85,6 +121,7 @@ async function restore(link, dest) {
     const data = await decode(link);
     const pid = Object.keys(PATIENTS).find(k => PATIENTS[k].name_en === data.patient.name_en && PATIENTS[k].birth === data.patient.birth);
     if (pid) {
+      if (state.pid !== pid) state.inbox = [];
       state.pid = pid;
       state.self = data.self || clone(PATIENTS[pid].self);
       if (LANGS.includes(data.patient.lang)) state.lang = data.patient.lang;
@@ -94,6 +131,30 @@ async function restore(link, dest) {
   location.replace(state.pid ? dest : '#/start');
   toast(ok ? UI.restored[state.lang] : UI.restore_fail[state.lang]);
 }
+
+// Fill <img data-fid> with the stored photo.
+async function hydrate(scope) {
+  for (const img of (scope || root).querySelectorAll('img[data-fid]')) {
+    if (img.src) continue;
+    try { const u = await F.urlFor(img.dataset.fid); if (u) img.src = u; else img.classList.add('missing'); }
+    catch (e) { img.classList.add('missing'); }
+  }
+}
+
+// ---------- the journey: add an item to the conversation and let the sample clinic reply ----------
+function addItem(it) {
+  it.id = F.newId(); it.at = Date.now(); it.reply = null;
+  state.inbox.push(it); save();
+  setTimeout(() => {
+    it.reply = { at: Date.now() }; save();
+    toast(J.new_reply[state.lang]);
+    const h = location.hash.slice(1) || '/';
+    if (h === '/' || h === '/thread' || h === '/clinic' || h.startsWith('/sent/')) rerender();
+  }, REPLY_MS);
+  return it;
+}
+const painOf = (fd, sym) => { const p = Math.max(0, Math.min(10, parseInt(fd.get('pain'), 10) || 0)); return p > 0 || sym.includes('pain') ? p : null; };
+const txt = (fd, k, n) => String(fd.get(k) || '').trim().slice(0, n);
 
 function rerender() { const y = window.scrollY; route().then(() => window.scrollTo(0, y)); }
 
@@ -147,7 +208,31 @@ root.addEventListener('click', async e => {
   if (!b || b.tagName === 'FORM') return;
   const a = b.dataset.act;
   if (a === 'lang') { state.lang = b.dataset.l; save(); rerender(); }
+  else if (a === 'tooth') {
+    const n = +b.dataset.n;
+    state.draft.tooth = state.draft.tooth === n ? null : n;
+    root.querySelectorAll('[data-act="tooth"]').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.n === state.draft.tooth)));
+    const out = document.getElementById('tooth-out');
+    if (out) out.textContent = state.draft.tooth ? '#' + state.draft.tooth : J.where_none[state.lang];
+  }
+  else if (a === 'fsel') {
+    const id = b.dataset.id, i = state.cmp.indexOf(id);
+    if (i > -1) state.cmp.splice(i, 1); else { state.cmp.push(id); if (state.cmp.length > 2) state.cmp.shift(); }
+    rerender();
+  }
+  else if (a === 'samples') {
+    b.disabled = true; b.textContent = UI.making[state.lang];
+    try { const recs = await F.addSamples(); state.cmp = recs.map(r => r.id); rerender(); }
+    catch (err) { b.disabled = false; toast(J.files_fail[state.lang]); }
+  }
+  else if (a === 'fdel') {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = J.delete_arm[state.lang]; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ''; b.textContent = UI.remove[state.lang]; } }, 3000); return; }
+    await F.delFile(b.dataset.id).catch(() => {});
+    state.cmp = state.cmp.filter(x => x !== b.dataset.id);
+    location.hash = '#/files';
+  }
   else if (a === 'pick') {
+    if (state.pid !== b.dataset.pid) state.inbox = [];
     state.pid = b.dataset.pid; state.self = clone(PATIENTS[state.pid].self); save();
     location.hash = '#/';
   }
@@ -170,12 +255,35 @@ root.addEventListener('click', async e => {
     if (!resetArmed) { resetArmed = true; b.textContent = UI.reset_confirm[state.lang]; setTimeout(() => { resetArmed = false; if (b.isConnected) b.textContent = UI.reset[state.lang]; }, 3000); return; }
     resetArmed = false;
     try { localStorage.removeItem(KEY); } catch (err) { /* ignore */ }
-    state.pid = null; state.self = null; state.scope = 'all';
+    F.clearFiles().catch(() => {}); F.forgetUrls();
+    state.pid = null; state.self = null; state.scope = 'all'; state.inbox = []; state.cmp = [];
     location.hash = '#/start';
   }
 });
 
 root.addEventListener('submit', e => {
+  const jf = e.target.closest('form[data-act="ask"],form[data-act="check"],form[data-act="msg"]');
+  if (jf) {
+    e.preventDefault();
+    const fd = new FormData(jf), kind = jf.dataset.act, files = state.draft.files.slice();
+    let sym = fd.getAll('sym').map(String);
+    const text = txt(fd, 'text', 600);
+    if (kind === 'ask') {
+      if (!sym.length && !text && !files.length) { toast(J.need_something[state.lang]); return; }
+      const it = addItem({ kind: 'inquiry', tooth: state.draft.tooth, sym, pain: painOf(fd, sym), since: txt(fd, 'since', 2), want: fd.getAll('want').map(String), prior: txt(fd, 'prior', 120), text, files });
+      state.draftFor = ''; location.hash = '#/sent/' + it.id;
+    } else if (kind === 'check') {
+      if (sym.length > 1) sym = sym.filter(k => k !== 'none');
+      const it = addItem({ kind: 'check', rec: parseInt(fd.get('rec'), 10) || 0, cp: parseInt(fd.get('cp'), 10) || 7, sym, pain: painOf(fd, sym) ?? 0, text, files });
+      state.draftFor = ''; location.hash = '#/thread';
+      toast(JV.flag(it) === 'red' ? J.urgent[state.lang] : J.check_ok[state.lang]);
+    } else {
+      if (!text && !files.length) return;
+      addItem({ kind: 'msg', text, files });
+      state.draft = { tooth: null, files: [] }; rerender();
+    }
+    return;
+  }
   const f = e.target.closest('form[data-act="addcustom"]');
   if (!f) return;
   e.preventDefault();
@@ -183,6 +291,25 @@ root.addEventListener('submit', e => {
   if (!v) return;
   state.self.custom.push({ cat: f.dataset.c, text: v.slice(0, 60) });
   save(); rerender();
+});
+
+// Photos picked in a form are stored right away and shown as thumbnails; the pain slider shows its value.
+root.addEventListener('change', async e => {
+  const el = e.target;
+  if (el.matches('input[type="file"][data-act="attach"]')) {
+    try { const recs = await F.addFiles(el.files, 'photo'); state.draft.files.push(...recs.map(r => r.id)); }
+    catch (err) { toast(J.files_fail[state.lang]); }
+    el.value = '';
+    const box = document.getElementById('att');
+    if (box) { box.innerHTML = JV.thumbs(state.draft.files); hydrate(box); }
+  } else if (el.matches('input[type="file"][data-act="upload"]')) {
+    const kind = (document.getElementById('f-kind') || {}).value || 'photo';
+    try { await F.addFiles(el.files, kind); } catch (err) { toast(J.files_fail[state.lang]); }
+    rerender();
+  }
+});
+root.addEventListener('input', e => {
+  if (e.target.id === 'pain') { const o = document.getElementById('pain-out'); if (o) o.textContent = e.target.value + '/10'; }
 });
 
 async function saveCard(btn) {

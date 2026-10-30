@@ -63,10 +63,11 @@ export function start(s) {
     }).join('') + '</div></section>';
 }
 
-export function home(s) {
+export function home(s, panel) {
   const L = s.lang, p = PATIENTS[s.pid], self = s.self;
   return '<div class="bar"><h1>' + t('passport', L) + '</h1><a class="link" href="#/start">' + LANG_LABEL[L] + ' ▾</a></div>' +
     '<div class="profile"><b>' + esc(p.name) + '</b><span class="meta">' + esc(p.name_en) + ' · ' + t('born', L) + ' <span class="mono">' + esc(p.birth) + '</span> · ' + nat(p.nat, L) + '</span></div>' +
+    (panel || '') +
     '<section class="sec"><div class="sec-h"><h2>' + t('verified', L) + '</h2><span class="badge v">✓ ' + CLINIC[L] + '</span></div>' +
     chart(p.records, true) +
     p.records.map((r, i) => '<a class="rec" href="#/detail/' + i + '"><span class="tooth">' + toothLabel(r.tooth, L) + '</span>' +
