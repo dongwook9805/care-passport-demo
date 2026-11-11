@@ -82,7 +82,12 @@ export async function decode(link) {
 // ---- validation: turn an untrusted object into the shape the views expect ----
 function str(x, max = 80) { return typeof x === 'string' ? x.slice(0, max) : ''; }
 function ids(a) { return Array.isArray(a) ? a.filter(x => typeof x === 'string').slice(0, 20).map(x => x.slice(0, 40)) : []; }
-function tooth(n) { return Number.isInteger(n) && n >= 11 && n <= 48 && n % 10 >= 1 && n % 10 <= 8 ? n : null; }
+// FDI: permanent 11–48 (positions 1–8), primary 51–85 (positions 1–5; sent by prototype/web/noksan)
+function tooth(n) {
+  if (!Number.isInteger(n)) return null;
+  const q = Math.floor(n / 10), p = n % 10;
+  return (q >= 1 && q <= 4 && p >= 1 && p <= 8) || (q >= 5 && q <= 8 && p >= 1 && p <= 5) ? n : null;
+}
 function time(n) { return Number.isFinite(n) && n > 0 ? n : null; }
 
 export function expand(o) {

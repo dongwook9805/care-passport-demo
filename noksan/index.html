@@ -11,7 +11,8 @@
 :root {
   --bg: #F3F6F5; --surface: #FFFFFF; --fg: #15242A; --muted: #5A6A6E; --line: #D3DCDA;
   --accent: #0C6A63; --accent-soft: #E0EFEB; --on-accent: #FFFFFF;
-  --danger: #A23A2E; --danger-soft: #F8E5E1; --warn: #7A5600; --warn-soft: #F7ECCF;
+  --danger: #A23A2E; --danger-soft: #F8E5E1; --warn: #9A6B00; --warn-soft: #F7ECCF;
+  --fill: #2F6FB0; --fill-soft: #E2ECF7;
   --sans: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
   --mono: ui-monospace, Menlo, Consolas, monospace;
 }
@@ -20,6 +21,7 @@
     --bg: #0F181B; --surface: #172428; --fg: #E4EDEB; --muted: #9AAEAD; --line: #2C3E43;
     --accent: #5CC4B6; --accent-soft: #163631; --on-accent: #0F181B;
     --danger: #F0A396; --danger-soft: #3C2220; --warn: #E5C46B; --warn-soft: #393013;
+    --fill: #86B6E8; --fill-soft: #1B2C3F;
     color-scheme: dark;
   }
 }
@@ -88,13 +90,32 @@ main { padding: 20px max(16px, 3vw) 48px; min-width: 0; display: grid; gap: 20px
 .two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
 
 .teeth { display: grid; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
-.trow { display: flex; gap: 3px; align-items: center; }
-.trow .mid { width: 10px; align-self: stretch; border-left: 2px solid var(--line); margin-left: 6px; }
-.tooth { width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); font-family: var(--mono); font-size: 13px; padding: 0; }
-.tooth.has { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
-.tooth.sel { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
-.tooth.focus { outline: 2px solid var(--fg); outline-offset: 1px; }
-.orient { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); max-width: 590px; }
+.trow { display: flex; gap: 3px; align-items: stretch; }
+.trow .mid { width: 10px; border-left: 2px solid var(--line); margin-left: 6px; }
+/* 치아 한 칸: 번호 / 5면 그림 / 상태 기호 */
+.tc { width: 44px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 3px 2px 2px; display: grid; justify-items: center; gap: 1px; }
+.tc .tnum { font-family: var(--mono); font-size: 12px; line-height: 1.2; }
+.tc svg { width: 32px; height: 32px; display: block; }
+.tc .tbadge { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); line-height: 1.2; min-height: 13px; }
+.tc.has .tnum { text-decoration: underline; font-weight: 700; }
+.tc.plan { border: 2px dashed var(--warn); }
+.tc.sel { background: var(--accent-soft); border: 2px solid var(--accent); }
+.tc.focus { outline: 3px solid var(--fg); outline-offset: 1px; }
+.sf { fill: var(--surface); stroke: var(--muted); stroke-width: 1; }
+.sf.caries { fill: var(--danger); }
+.sf.filling { fill: var(--fill); }
+.sf.temp { fill: var(--warn); }
+svg .crown { fill: none; stroke: var(--fg); stroke-width: 2; }
+svg .x { stroke: var(--fg); stroke-width: 3; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.lg { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.lg.caries { background: var(--danger); } .lg.filling { background: var(--fill); } .lg.temp { background: var(--warn); } .lg.plan { border: 2px dashed var(--warn); }
+.surfs { display: flex; flex-wrap: wrap; gap: 6px; }
+.surfbtn { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 4px 10px; }
+.surfbtn.caries { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); font-weight: 600; }
+.surfbtn.filling { background: var(--fill-soft); color: var(--fill); border-color: var(--fill); font-weight: 600; }
+.surfbtn.temp { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); font-weight: 600; }
+.orient { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); max-width: 790px; }
 
 .visits { display: grid; gap: 12px; }
 .visit { display: grid; gap: 8px; }
@@ -2561,8 +2582,15 @@ var qrcode = function() {
     ['첫째 큰어금니', 'first molar', '第一磨牙', 'первый моляр'],
     ['둘째 큰어금니', 'second molar', '第二磨牙', 'второй моляр'],
     ['사랑니', 'wisdom tooth', '智齿', 'зуб мудрости']];
+  var PTYPE = [null,
+    ['유중절치', 'primary central incisor', '乳中切牙', 'молочный центральный резец'],
+    ['유측절치', 'primary lateral incisor', '乳侧切牙', 'молочный боковой резец'],
+    ['유견치', 'primary canine', '乳尖牙', 'молочный клык'],
+    ['제1유구치', 'primary first molar', '第一乳磨牙', 'первый молочный моляр'],
+    ['제2유구치', 'primary second molar', '第二乳磨牙', 'второй молочный моляр']];
   function toothName(n, lang) {
-    var i = LANG_IDX[lang] || 0, q = QUAD[Math.floor(n / 10)], t = TTYPE[n % 10];
+    var i = LANG_IDX[lang] || 0, qn = Math.floor(n / 10), prim = qn >= 5 && qn <= 8;
+    var q = QUAD[prim ? qn - 4 : qn], t = prim ? PTYPE[n % 10] : TTYPE[n % 10];
     if (!q || !t) return '#' + n;
     if (lang === 'zh') return q[i] + t[i];
     if (lang === 'ru') return t[i] + ', ' + q[i];
@@ -2791,6 +2819,9 @@ var qrcode = function() {
     return [
       { id: uid(), sample: true, chartNo: 'N-0012', name: '아지즈 카리모프', nameAlt: 'Aziz Karimov', birthYear: '1979', sex: '남', nationality: '우즈베키스탄', lang: 'ru',
         alerts: ['penicillin', 'antiplatelet', 'htn'], noneConfirmed: false, alertNote: '아스피린 100mg 매일 복용(본인 진술)', memo: '',
+        chart: { '18': { st: ['missing'], s: {}, note: '' }, '28': { st: ['missing'], s: {}, note: '' }, '36': { st: [], s: { O: 'temp', D: 'caries' }, note: '근관치료 중' }, '46': { st: ['rct', 'crown'], s: {}, note: '본국에서 치료, 시기 모름' } },
+        plan: [{ id: uid(), code: 'endo', teeth: [36], surf: '', note: '근관 충전 (2~3회차)', addedAt: '2026-10-04', done: null },
+          { id: uid(), code: 'prosth', teeth: [36], surf: '', note: '근관치료 끝나면 크라운 상담', addedAt: '2026-10-04', done: null }],
         visits: [
           { id: uid(), date: '2026-09-06', provider: '치과의사 A (가상)', recorder: '봉사자 B (가상)', complaint: '왼쪽 아래 어금니가 밤에 아픔',
             items: [{ code: 'xray', teeth: [36], note: '' }, { code: 'temp', teeth: [36], note: '깊은 우식, 치수 노출 의심' }, { code: 'rx', teeth: [], note: '진통제 3일분' }],
@@ -2801,13 +2832,17 @@ var qrcode = function() {
         ] },
       { id: uid(), sample: true, chartNo: 'N-0031', name: '천위', nameAlt: '陈雨 / Chen Yu', birthYear: '1994', sex: '여', nationality: '중국', lang: 'zh',
         alerts: [], noneConfirmed: true, alertNote: '', memo: '',
+        chart: { '16': { st: [], s: { O: 'filling' }, note: '' }, '26': { st: [], s: { O: 'caries' }, note: '초기 우식 의심' }, '38': { st: ['missing'], s: {}, note: '' }, '48': { st: ['missing'], s: {}, note: '' } },
+        plan: [{ id: uid(), code: 'resin', teeth: [26], surf: 'O', note: '다음 검진 때 확인 후', addedAt: '2026-10-04', done: null }],
         visits: [
           { id: uid(), date: '2026-10-04', provider: '치과의사 A (가상)', recorder: '봉사자 D (가상)', complaint: '정기 검진, 오른쪽 위가 가끔 시림',
-            items: [{ code: 'exam', teeth: [], note: '' }, { code: 'scaling', teeth: [], note: '' }, { code: 'resin', teeth: [16], note: '교합면 작은 우식' }, { code: 'edu', teeth: [], note: '치간칫솔 안내' }],
+            items: [{ code: 'exam', teeth: [], note: '' }, { code: 'scaling', teeth: [], note: '' }, { code: 'resin', teeth: [16], surf: 'O', note: '작은 우식' }, { code: 'edu', teeth: [], note: '치간칫솔 안내' }],
             comment: '전반적으로 양호.', nextPlan: '6개월 뒤 검진. #26도 초기 우식 의심, 다음에 확인.' }
         ] },
       { id: uid(), sample: true, chartNo: 'N-0047', name: '올가 이바노바', nameAlt: 'Ольга Иванова / Olga Ivanova', birthYear: '1961', sex: '여', nationality: '러시아', lang: 'ru',
         alerts: ['anticoag', 'heart'], noneConfirmed: false, alertNote: '와파린 복용, 발치 전 INR 확인 필요', memo: '하악 부분 틀니 사용',
+        chart: { '36': { st: ['missing'], s: {}, note: '' }, '37': { st: ['missing'], s: {}, note: '' }, '44': { st: ['missing'], s: {}, note: '' }, '46': { st: ['missing'], s: {}, note: '' }, '47': { st: ['missing'], s: {}, note: '' }, '45': { st: ['crown'], s: {}, note: '틀니 지대치' } },
+        plan: [{ id: uid(), code: 'denture', teeth: [44], surf: '', note: '하악 부분 틀니에 #44 추가', addedAt: '2026-09-06', done: null }],
         visits: [
           { id: uid(), date: '2026-08-02', provider: '치과의사 C (가상)', recorder: '봉사자 B (가상)', complaint: '아래 틀니가 잇몸을 누름',
             items: [{ code: 'denture', teeth: [], note: '하악 부분 틀니 내면 조정' }],
@@ -2815,6 +2850,16 @@ var qrcode = function() {
           { id: uid(), date: '2026-09-06', provider: '치과의사 A (가상)', recorder: '봉사자 D (가상)', complaint: '흔들리는 이 빼기',
             items: [{ code: 'extraction', teeth: [44], note: 'INR 2.3 확인(본인 지참 결과지). 지혈제 사용' }],
             comment: '지혈 양호. 귀가 후 출혈 시 연락 안내.', nextPlan: '#44 발치 부위 치유 확인. 하악 틀니에 #44 추가 필요.' }
+        ] },
+      { id: uid(), sample: true, chartNo: 'N-0058', name: '알리나 유수포바', nameAlt: 'Алина Юсупова / Alina Yusupova', birthYear: '2019', sex: '여', nationality: '우즈베키스탄', lang: 'ru',
+        alerts: [], noneConfirmed: true, alertNote: '', memo: '보호자(어머니)와 함께 옴',
+        chart: { '54': { st: [], s: { O: 'caries' }, note: '' }, '64': { st: [], s: { O: 'filling' }, note: '' }, '75': { st: [], s: { O: 'caries', D: 'caries' }, note: '깊음, 치수 노출 가능성' } },
+        plan: [{ id: uid(), code: 'resin', teeth: [54], surf: 'O', note: '', addedAt: '2026-10-04', done: null },
+          { id: uid(), code: 'other', teeth: [75], surf: 'OD', note: '치수절단술 고려, 협조도 확인', addedAt: '2026-10-04', done: null }],
+        visits: [
+          { id: uid(), date: '2026-10-04', provider: '치과의사 C (가상)', recorder: '봉사자 D (가상)', complaint: '단 것 먹으면 아래 왼쪽 이가 아프다고 함',
+            items: [{ code: 'exam', teeth: [], note: '' }, { code: 'fluoride', teeth: [], note: '' }, { code: 'resin', teeth: [64], surf: 'O', note: '' }],
+            comment: '협조 좋음. 어머니에게 칫솔질 안내.', nextPlan: '#54 레진, #75 치수절단술 여부 판단.' }
         ] }
     ];
   }
@@ -2837,17 +2882,30 @@ var qrcode = function() {
     renderStatus();
   }
 
+  // 예전 백업이나 이전 버전 기록에 차트·계획 칸이 없으면 채운다
+  function normalize(d) {
+    d.patients.forEach(function (p) {
+      if (!p.chart || typeof p.chart !== 'object') p.chart = {};
+      if (!Array.isArray(p.plan)) p.plan = [];
+      p.visits.forEach(function (v) { (v.items || []).forEach(function (it) { if (!it.surf) it.surf = ''; if (!Array.isArray(it.teeth)) it.teeth = []; }); });
+    });
+    return d;
+  }
+
   db = load();
   if (!db) { db = { version: 1, patients: samples() }; save(); }
+  normalize(db);
 
   /* ---------- 화면 상태 ---------- */
-  var st = { sel: null, view: 'home', q: '', draft: null, toothFocus: null, exLang: null, exVisit: null, confirm: null, flash: null, teethSel: [], itemCode: 'exam', itemNote: '' };
+  var st = { sel: null, view: 'home', q: '', draft: null, toothFocus: null, exLang: null, exVisit: null, confirm: null, flash: null,
+    teethSel: [], itemCode: null, itemNote: '', surfSel: [], dent: 'perm', pCode: null, pSurf: [], pNote: '' };
 
   function patient(id) { for (var i = 0; i < db.patients.length; i++) if (db.patients[i].id === id) return db.patients[i]; return null; }
   function sortedVisits(p) { return p.visits.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }); }
   function lastVisit(p) { var v = sortedVisits(p); return v.length ? v[0] : null; }
   function hasRisk(p) { return p.alerts.some(function (c) { return AL[c] && AL[c].risk; }); }
   function teethLabel(t) { return t && t.length ? t.map(function (n) { return '#' + n; }).join(' ') : '입 전체'; }
+  function itemLabel(it) { return teethLabel(it.teeth) + (it.surf ? ' ' + it.surf : ''); }
   function trName(code, lang) { var t = TR[code]; return t ? t.names[LANG_IDX[lang] || 0] : code; }
 
   function renderStatus() {
@@ -2879,19 +2937,157 @@ var qrcode = function() {
     $('plist').innerHTML = html || '<li class="empty-list">' + (q ? '"' + esc(st.q) + '"에 맞는 환자가 없습니다. 새 환자로 등록하세요.' : '등록된 환자가 없습니다.') + '</li>';
   }
 
-  function teethGrid(selected, has, focus) {
-    var rows = [[18, 17, 16, 15, 14, 13, 12, 11, 0, 21, 22, 23, 24, 25, 26, 27, 28], [48, 47, 46, 45, 44, 43, 42, 41, 0, 31, 32, 33, 34, 35, 36, 37, 38]];
-    var html = '<div class="teeth" role="group" aria-label="치아 선택 (FDI 번호)">';
+  /* ---------- 치아 차트 ----------
+     치면: M 근심, D 원심, B 협측, L 설측(구개측), O 교합면(앞니는 I 절단면).
+     그림은 환자를 마주 본 방향: 위턱은 바깥(협측)이 위, 아래턱은 바깥이 아래, 근심은 가운데선 쪽. */
+  var SURF_ORDER = ['M', 'O', 'D', 'B', 'L'];
+  var SURF_NAME = { M: '근심면', D: '원심면', B: '협측면', L: '설측면', O: '교합면' };
+  var SURF_STATE = [['', '이상 없음'], ['caries', '충치'], ['filling', '충전'], ['temp', '임시 충전']];
+  var STATUS = [['missing', '결손', '×'], ['implant', '임플란트', 'I'], ['crown', '크라운', 'C'], ['bridge', '브릿지', 'B'], ['rct', '근관치료 완료', 'R']];
+  var PERM_ROWS = [[18, 17, 16, 15, 14, 13, 12, 11, 0, 21, 22, 23, 24, 25, 26, 27, 28], [48, 47, 46, 45, 44, 43, 42, 41, 0, 31, 32, 33, 34, 35, 36, 37, 38]];
+  var PRIM_ROWS = [[55, 54, 53, 52, 51, 0, 61, 62, 63, 64, 65], [85, 84, 83, 82, 81, 0, 71, 72, 73, 74, 75]];
+
+  function isAnterior(n) { return n % 10 <= 3; }
+  function surfPos(n) {
+    var q = Math.floor(n / 10), upper = [1, 2, 5, 6].indexOf(q) >= 0, right = [1, 4, 5, 8].indexOf(q) >= 0;
+    return { top: upper ? 'B' : 'L', bottom: upper ? 'L' : 'B', left: right ? 'D' : 'M', right: right ? 'M' : 'D' };
+  }
+  function surfName(n, c) { return c === 'O' && isAnterior(n) ? '절단면' : SURF_NAME[c]; }
+  function sortSurf(arr) { return SURF_ORDER.filter(function (c) { return arr.indexOf(c) >= 0; }).join(''); }
+  function entry(p, n) { return (p && p.chart && p.chart[n]) || null; }
+  function ensureEntry(p, n) {
+    var e = p.chart[n] || (p.chart[n] = { st: [], s: {}, note: '' });
+    if (!Array.isArray(e.st)) e.st = [];
+    if (!e.s) e.s = {};
+    return e;
+  }
+  function hasPrimary(p) {
+    if (Object.keys(p.chart || {}).some(function (k) { return +k >= 51; })) return true;
+    return p.visits.some(function (v) { return v.items.some(function (it) { return it.teeth.some(function (n) { return n >= 51; }); }); });
+  }
+  function toothSvg(p, n) {
+    var e = entry(p, n) || {}, s = e.s || {}, sts = e.st || [], pos = surfPos(n);
+    function poly(code, pts) { return '<polygon points="' + pts + '" class="sf' + (s[code] ? ' ' + s[code] : '') + '"/>'; }
+    var h = '<svg viewBox="0 0 40 40" aria-hidden="true">' +
+      poly(pos.top, '0,0 40,0 28,12 12,12') + poly(pos.right, '40,0 40,40 28,28 28,12') +
+      poly(pos.bottom, '0,40 12,28 28,28 40,40') + poly(pos.left, '0,0 12,12 12,28 0,40') + poly('O', '12,12 28,12 28,28 12,28');
+    if (sts.indexOf('crown') >= 0) h += '<circle cx="20" cy="20" r="18.5" class="crown"/>';
+    if (sts.indexOf('missing') >= 0) h += '<line x1="3" y1="3" x2="37" y2="37" class="x"/><line x1="37" y1="3" x2="3" y2="37" class="x"/>';
+    return h + '</svg>';
+  }
+  function toothBadges(p, n) {
+    var e = entry(p, n);
+    if (!e || !e.st) return '';
+    return STATUS.filter(function (x) { return x[0] !== 'missing' && e.st.indexOf(x[0]) >= 0; }).map(function (x) { return x[2]; }).join('');
+  }
+  function planTeeth(p) {
+    var m = {};
+    ((p && p.plan) || []).forEach(function (pl) { if (!pl.done) pl.teeth.forEach(function (n) { m[n] = true; }); });
+    return m;
+  }
+  function toothSummary(p, n) {
+    var e = entry(p, n), parts = [];
+    if (e) {
+      STATUS.forEach(function (x) { if (e.st.indexOf(x[0]) >= 0) parts.push(x[1]); });
+      SURF_ORDER.forEach(function (c) { if (e.s[c]) parts.push(c + ' ' + SURF_STATE.filter(function (x) { return x[0] === e.s[c]; })[0][1]); });
+      if (e.note) parts.push(e.note);
+    }
+    return parts.join(', ');
+  }
+
+  // opts: { p, selected, has, focus, dent }
+  function teethGrid(opts) {
+    var rows = opts.dent === 'prim' ? PRIM_ROWS : PERM_ROWS, sel = opts.selected || [], has = opts.has || {}, plan = planTeeth(opts.p);
+    var html = '<div class="teeth" role="group" aria-label="치아 차트 (FDI 번호)">';
     rows.forEach(function (r) {
       html += '<div class="trow">';
       r.forEach(function (n) {
         if (!n) { html += '<span class="mid" aria-hidden="true"></span>'; return; }
-        var cls = 'tooth' + (selected.indexOf(n) >= 0 ? ' sel' : '') + (has && has[n] ? ' has' : '') + (focus === n ? ' focus' : '');
-        html += '<button type="button" class="' + cls + '" data-act="tooth" data-n="' + n + '" title="#' + n + ' ' + toothName(n, 'ko') + '">' + n + '</button>';
+        var on = sel.indexOf(n) >= 0;
+        var cls = 'tc' + (on ? ' sel' : '') + (has[n] ? ' has' : '') + (opts.focus === n ? ' focus' : '') + (plan[n] ? ' plan' : '');
+        var sum = toothSummary(opts.p, n);
+        html += '<button type="button" class="' + cls + '" data-act="tooth" data-n="' + n + '" aria-pressed="' + (on || opts.focus === n) + '" title="' +
+          esc('#' + n + ' ' + toothName(n, 'ko') + (sum ? ' · ' + sum : '') + (plan[n] ? ' · 치료 계획 있음' : '')) + '">' +
+          '<span class="tnum">' + n + '</span>' + toothSvg(opts.p, n) + '<span class="tbadge">' + (toothBadges(opts.p, n) || '&nbsp;') + '</span></button>';
       });
       html += '</div>';
     });
     return html + '<div class="orient"><span>← 환자의 오른쪽</span><span>환자의 왼쪽 →</span></div></div>';
+  }
+  function dentToggle() {
+    return '<div class="chips" role="group" aria-label="치열">' + [['perm', '영구치'], ['prim', '유치']].map(function (d) {
+      return '<button type="button" class="toggle" data-act="dent" data-d="' + d[0] + '" aria-pressed="' + (st.dent === d[0]) + '">' + d[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function legend() {
+    return '<div class="legend small muted"><span><i class="lg caries"></i>충치</span><span><i class="lg filling"></i>충전</span><span><i class="lg temp"></i>임시 충전</span>' +
+      '<span><b>×</b> 결손</span><span><b>I</b> 임플란트</span><span><b>C</b> 크라운(원)</span><span><b>B</b> 브릿지</span><span><b>R</b> 근관치료 완료</span>' +
+      '<span><i class="lg plan"></i>치료 계획 있음</span><span><u>번호 밑줄</u> 진료 기록 있음</span></div>';
+  }
+
+  function planRow(pl, inForm, added) {
+    var h = '<div class="item"><span class="chip warn">계획</span><b>' + esc(itemLabel(pl) + ' ' + trName(pl.code, 'ko')) + '</b>' +
+      '<span class="grow small muted">' + esc([pl.note, pl.addedAt ? pl.addedAt + ' 계획' : ''].filter(Boolean).join(' · ')) + '</span>';
+    if (inForm) {
+      h += added ? '<span class="chip">오늘 기록에 넣음</span>' : '<button type="button" class="btn sm" data-act="plan-today" data-id="' + pl.id + '">오늘 했음</button>';
+    } else {
+      h += '<button type="button" class="btn sm" data-act="plan-do" data-id="' + pl.id + '">오늘 진료로 기록</button>' +
+        '<button type="button" class="btn sm danger" data-act="ask-del-plan" data-id="' + pl.id + '">삭제</button>';
+    }
+    return h + '</div>';
+  }
+  function openPlans(p) { return p.plan.filter(function (x) { return !x.done; }); }
+  function planCard(p) {
+    var open = openPlans(p), done = p.plan.length - open.length;
+    return '<section class="card"><h3>남은 치료 계획 (' + open.length + '건)</h3>' +
+      (open.length ? '<div class="items">' + open.map(function (pl) { return planRow(pl, false); }).join('') + '</div>'
+        : '<p class="small muted">남은 계획이 없습니다. 아래 치아 차트에서 치아를 눌러 계획을 넣을 수 있습니다.</p>') +
+      (done ? '<p class="small muted">완료한 계획 ' + done + '건</p>' : '') + '</section>';
+  }
+
+  function toothPanel(p, visits) {
+    var n = st.toothFocus, e = entry(p, n) || { st: [], s: {}, note: '' };
+    var h = '<section class="card"><div class="visit-head"><h3>#' + n + ' ' + esc(toothName(n, 'ko')) + '</h3><button type="button" class="btn sm" data-act="tooth-close">닫기</button></div>';
+    h += '<div class="field"><span class="lbl">치아 상태 · 바뀌면 바로 저장됩니다</span><div class="chips">' + STATUS.map(function (x) {
+      return '<button type="button" class="toggle" data-act="tstatus" data-code="' + x[0] + '" aria-pressed="' + (e.st.indexOf(x[0]) >= 0) + '">' + x[1] + '</button>';
+    }).join('') + '</div></div>';
+    h += '<div class="field"><span class="lbl">치면 · 누를 때마다 이상 없음 → 충치 → 충전 → 임시 충전</span><div class="surfs">' + SURF_ORDER.map(function (c) {
+      var v = e.s[c] || '';
+      var lab = SURF_STATE.filter(function (x) { return x[0] === v; })[0][1];
+      return '<button type="button" class="surfbtn ' + v + '" data-act="tsurf" data-s="' + c + '">' + (c === 'O' && isAnterior(n) ? 'I' : c) + ' ' + surfName(n, c) + ' · ' + lab + '</button>';
+    }).join('') + '</div></div>';
+    h += '<div class="field"><label for="toothNote">이 치아 메모</label><input id="toothNote" value="' + esc(e.note || '') + '" placeholder="예: 동요도 2도, 본국에서 치료(시기 모름)"></div>';
+    var plans = openPlans(p).filter(function (pl) { return pl.teeth.indexOf(n) >= 0; });
+    h += '<div class="field"><span class="lbl">이 치아의 치료 계획</span>' + (plans.length ? '<div class="items">' + plans.map(function (pl) { return planRow(pl, false); }).join('') + '</div>' : '<span class="small muted">없음</span>') + '</div>';
+    h += '<div class="adder"><span class="small"><b>계획 넣기</b> · 다음에 할 치료를 고르고, 필요하면 면을 누르세요.</span><div class="chips">' + TREAT.map(function (t) {
+      return '<button type="button" class="toggle" data-act="pick-ptreat" data-code="' + t[0] + '" aria-pressed="' + (st.pCode === t[0]) + '">' + esc(t[1]) + '</button>';
+    }).join('') + '</div><div class="chips">' + SURF_ORDER.map(function (c) {
+      return '<button type="button" class="toggle" data-act="psurf" data-s="' + c + '" aria-pressed="' + (st.pSurf.indexOf(c) >= 0) + '">' + c + ' ' + surfName(n, c) + '</button>';
+    }).join('') + '</div><div class="field"><label for="pNote">메모 (선택)</label><input id="pNote" value="' + esc(st.pNote) + '" placeholder="예: 협조도 보고 결정"></div>' +
+      '<div><button type="button" class="btn" data-act="add-plan"' + (st.pCode ? '' : ' disabled') + '>' + (st.pCode ? '계획에 넣기: #' + n + (st.pSurf.length ? ' ' + sortSurf(st.pSurf) : '') + ' ' + esc(trName(st.pCode, 'ko')) : '치료를 먼저 고르세요') + '</button></div></div>';
+    // 이 치아 이력 (신경치료는 회차 표시)
+    var rows = [], endo = 0;
+    visits.slice().reverse().forEach(function (v) {
+      v.items.forEach(function (it) {
+        if (it.teeth.indexOf(n) < 0) return;
+        var extra = '';
+        if (it.code === 'endo') { endo++; extra = ' ' + endo + '회차'; }
+        rows.push('<li><span class="mono">' + esc(v.date) + '</span> ' + esc(trName(it.code, 'ko') + (it.surf ? ' ' + it.surf : '') + extra) + (it.note ? ' · ' + esc(it.note) : '') + (v.provider ? ' <span class="muted">(' + esc(v.provider) + ')</span>' : '') + '</li>');
+      });
+    });
+    rows.reverse();
+    h += '<div class="field"><span class="lbl">이 치아 진료 이력</span>' + (rows.length ? '<ul class="guide">' + rows.join('') + '</ul>' : '<span class="small muted">기록 없음</span>') + '</div></section>';
+    return h;
+  }
+
+  function applyItemToChart(p, it) {
+    var fill = { resin: 'filling', temp: 'temp' };
+    it.teeth.forEach(function (n) {
+      var e = ensureEntry(p, n);
+      if (fill[it.code] && it.surf) it.surf.split('').forEach(function (c) { e.s[c] = fill[it.code]; });
+      if (it.code === 'extraction') { if (e.st.indexOf('missing') < 0) e.st.push('missing'); e.s = {}; }
+      if (it.code === 'prosth' && e.st.indexOf('crown') < 0 && e.st.indexOf('missing') < 0) e.st.push('crown');
+    });
   }
 
   function flashHtml() {
@@ -2930,7 +3126,8 @@ var qrcode = function() {
       '<ol class="guide">' +
       '<li>왼쪽에서 차트 번호(덴트웹 일련번호)나 이름으로 환자를 찾습니다. 처음 온 환자는 <b>새 환자 등록</b>을 누릅니다.</li>' +
       '<li>환자를 열면 주의사항과 <b>지난 진료에서 남긴 말</b>이 맨 위에 나옵니다. 오늘 진료자는 여기부터 봅니다.</li>' +
-      '<li>진료가 끝나면 <b>진료 기록 추가</b>에서 치아를 누르고 치료를 골라 항목을 넣고, 다음 진료자에게 남길 말을 적습니다.</li>' +
+      '<li><b>남은 치료 계획</b>과 <b>치아 차트</b>(충치·충전 면, 결손·임플란트·크라운·브릿지·근관치료, 유치)를 봅니다. 치아를 누르면 상태를 고치고 계획을 넣을 수 있습니다.</li>' +
+      '<li>진료가 끝나면 <b>진료 기록 추가</b>에서 계획 중 오늘 한 것에 "오늘 했음"을 누르거나, 치아·면·치료를 골라 넣고, 다음 진료자에게 남길 말을 적습니다. 충전·발치·보철은 차트에 자동으로 반영됩니다.</li>' +
       '<li><b>환자용 설명</b>은 받은 치료를 환자 언어(중국어·영어·러시아어·한국어)로 보여 줍니다. 인쇄할 수 있습니다.</li>' +
       '<li>하루가 끝나면 <b>백업 파일 저장</b>을 누릅니다. 기록은 이 기기의 브라우저에만 있습니다.</li>' +
       '</ol>' +
@@ -2955,15 +3152,11 @@ var qrcode = function() {
     }
     if (p.memo) h += '<p class="muted">메모: ' + esc(p.memo) + '</p>';
 
-    var focusList = '';
-    if (st.toothFocus) {
-      var rows = [];
-      visits.forEach(function (v) { v.items.forEach(function (it) { if (it.teeth.indexOf(st.toothFocus) >= 0) rows.push('<li><span class="mono">' + esc(v.date) + '</span> ' + esc(trName(it.code, 'ko')) + (it.note ? ' · ' + esc(it.note) : '') + '</li>'); }); });
-      focusList = '<h3>#' + st.toothFocus + ' ' + esc(toothName(st.toothFocus, 'ko')) + '</h3>' + (rows.length ? '<ul class="guide">' + rows.join('') + '</ul>' : '<p class="muted">이 치아의 기록이 없습니다.</p>');
-    } else {
-      focusList = '<p class="muted">색이 칠해진 치아는 기록이 있는 치아입니다. 치아를 누르면 그 치아의 이력만 보입니다.</p>';
-    }
-    h += '<section class="card"><div class="two"><div style="min-width:0">' + teethGrid([], has, st.toothFocus) + '</div><div>' + focusList + '</div></div></section>';
+    h += planCard(p);
+    h += '<section class="card"><div class="visit-head"><h3>치아 차트</h3>' + dentToggle() + '</div>' +
+      teethGrid({ p: p, has: has, focus: st.toothFocus, dent: st.dent }) + legend() +
+      (st.toothFocus ? '' : '<p class="small muted">치아를 누르면 상태(결손·임플란트·크라운·브릿지·근관치료)와 치면(충치·충전)을 고치고, 치료 계획을 넣고, 그 치아의 이력을 볼 수 있습니다.</p>') + '</section>';
+    if (st.toothFocus) h += toothPanel(p, visits);
 
     h += '<section class="visits"><h3>진료 이력 (' + visits.length + '회)</h3>';
     if (!visits.length) h += '<p class="muted">아직 진료 기록이 없습니다. 진료가 끝나면 <b>진료 기록 추가</b>를 누르세요.</p>';
@@ -2973,9 +3166,9 @@ var qrcode = function() {
         '<dl class="kv">' +
         (v.complaint ? '<dt>온 이유</dt><dd>' + esc(v.complaint) + '</dd>' : '') +
         '<dt>치료</dt><dd><div class="chips">' + (v.items.length ? v.items.map(function (it) {
-          return '<span class="chip" title="' + esc(it.note) + '">' + esc(teethLabel(it.teeth) + ' ' + trName(it.code, 'ko')) + '</span>';
+          return '<span class="chip" title="' + esc(it.note) + '">' + esc(itemLabel(it) + ' ' + trName(it.code, 'ko')) + '</span>';
         }).join('') : '<span class="muted">없음</span>') + '</div>' +
-        v.items.filter(function (it) { return it.note; }).map(function (it) { return '<div class="small muted">' + esc(teethLabel(it.teeth) + ' ' + trName(it.code, 'ko') + ': ' + it.note) + '</div>'; }).join('') + '</dd>' +
+        v.items.filter(function (it) { return it.note; }).map(function (it) { return '<div class="small muted">' + esc(itemLabel(it) + ' ' + trName(it.code, 'ko') + ': ' + it.note) + '</div>'; }).join('') + '</dd>' +
         (v.comment ? '<dt>코멘트</dt><dd>' + esc(v.comment) + '</dd>' : '') +
         (v.nextPlan ? '<dt>다음 진료자에게</dt><dd><b>' + esc(v.nextPlan) + '</b></dd>' : '') +
         '</dl><div class="actions"><button class="btn sm" data-act="edit-visit" data-id="' + v.id + '">수정</button>' +
@@ -3027,17 +3220,38 @@ var qrcode = function() {
       '<div class="row">' + field('진료일', 'date', d.date, { type: 'date', req: 1 }) + field('진료 의료진', 'provider', d.provider, { ph: '예: 치과의사 김OO' }) +
       field('기록 봉사자', 'recorder', d.recorder) + '</div>' +
       field('오늘 온 이유', 'complaint', d.complaint, { ph: '예: 왼쪽 아래 어금니 통증' });
-    h += '<div class="field"><span class="lbl">치료 항목</span><div class="items">' + (d.items.length ? d.items.map(function (it, i) {
-      return '<div class="item"><span class="chip">' + esc(teethLabel(it.teeth)) + '</span><b>' + esc(trName(it.code, 'ko')) + '</b>' +
+    var open = openPlans(p);
+    if (open.length) {
+      var usedPlan = {};
+      d.items.forEach(function (it) { if (it.planId) usedPlan[it.planId] = true; });
+      h += '<div class="field"><span class="lbl">남은 치료 계획 · 오늘 한 것은 "오늘 했음"을 누르세요</span><div class="items">' +
+        open.map(function (pl) { return planRow(pl, true, usedPlan[pl.id]); }).join('') + '</div></div>';
+    }
+    h += '<div class="field"><span class="lbl">오늘 한 치료</span><div class="items">' + (d.items.length ? d.items.map(function (it, i) {
+      return '<div class="item"><span class="chip">' + esc(itemLabel(it)) + '</span><b>' + esc(trName(it.code, 'ko')) + '</b>' + (it.planId ? '<span class="chip warn">계획에서</span>' : '') +
         '<span class="grow small muted">' + esc(it.note) + '</span><button type="button" class="btn sm danger" data-act="del-item" data-i="' + i + '">빼기</button></div>';
-    }).join('') : '<p class="small muted">아직 넣은 항목이 없습니다. 아래에서 치아와 치료를 고르고 항목 넣기를 누르세요.</p>') + '</div></div>';
-    h += '<div class="adder no-print"><span class="small"><b>1.</b> 치아를 누르세요. 입 전체 치료(검진·스케일링 등)는 치아를 고르지 않습니다.</span>' +
-      teethGrid(st.teethSel, null, null) +
+    }).join('') : '<p class="small muted">아직 넣은 치료가 없습니다. 위의 계획에서 고르거나, 아래에서 치아와 치료를 골라 넣으세요.</p>') + '</div></div>';
+    if (d.newPlans.length) {
+      h += '<div class="field"><span class="lbl">이번에 새로 넣는 치료 계획</span><div class="items">' + d.newPlans.map(function (pl, i) {
+        return '<div class="item"><span class="chip warn">계획</span><b>' + esc(itemLabel(pl) + ' ' + trName(pl.code, 'ko')) + '</b><span class="grow small muted">' + esc(pl.note) + '</span>' +
+          '<button type="button" class="btn sm danger" data-act="del-newplan" data-i="' + i + '">빼기</button></div>';
+      }).join('') + '</div></div>';
+    }
+    var one = st.teethSel.length === 1 ? st.teethSel[0] : null;
+    var pick = itemLabel({ teeth: st.teethSel.slice().sort(function (a, b) { return a - b; }), surf: one ? sortSurf(st.surfSel) : '' });
+    h += '<div class="adder no-print"><div class="visit-head"><span class="small"><b>1.</b> 치아를 누르세요. 입 전체 치료(검진·스케일링 등)는 고르지 않습니다.</span>' + dentToggle() + '</div>' +
+      teethGrid({ p: p, selected: st.teethSel, dent: st.dent }) +
+      (one ? '<span class="small"><b>치면</b> (#' + one + ', 충전 등 면이 있는 치료일 때)</span><div class="chips">' + SURF_ORDER.map(function (c) {
+        return '<button type="button" class="toggle" data-act="isurf" data-s="' + c + '" aria-pressed="' + (st.surfSel.indexOf(c) >= 0) + '">' + (c === 'O' && isAnterior(one) ? 'I' : c) + ' ' + surfName(one, c) + '</button>';
+      }).join('') + '</div>' : '') +
       '<span class="small"><b>2.</b> 치료를 고르세요.</span><div class="chips">' + TREAT.map(function (t) {
         return '<button type="button" class="toggle" data-act="pick-treat" data-code="' + t[0] + '" aria-pressed="' + (st.itemCode === t[0]) + '">' + esc(t[1]) + '</button>';
       }).join('') + '</div>' +
-      '<div class="field"><label for="itemNote">세부 내용 (선택)</label><input id="itemNote" value="' + esc(st.itemNote) + '" placeholder="예: 근관 형성 1회차, MO 레진"></div>' +
-      '<div><button type="button" class="btn" data-act="add-item">항목 넣기: ' + esc(teethLabel(st.teethSel) + ' ' + trName(st.itemCode, 'ko')) + '</button></div></div>';
+      '<div class="field"><label for="itemNote">세부 내용 (선택)</label><input id="itemNote" value="' + esc(st.itemNote) + '" placeholder="예: 근관 형성 1회차"></div>' +
+      '<div class="actions"><button type="button" class="btn" data-act="add-item"' + (st.itemCode ? '' : ' disabled') + '>' +
+      (st.itemCode ? '오늘 한 치료로 넣기: ' + esc(pick + ' ' + trName(st.itemCode, 'ko')) : '치료를 먼저 고르세요') + '</button>' +
+      '<button type="button" class="btn" data-act="add-plan-form"' + (st.itemCode ? '' : ' disabled') + '>나중에 할 계획으로 넣기</button>' +
+      (st.itemCode || st.teethSel.length ? '<button type="button" class="btn sm" data-act="clear-pick">선택 지우기</button>' : '') + '</div></div>';
     h += field('진료 코멘트', 'comment', d.comment, { textarea: 1 }) +
       field('다음 진료자에게 남길 말', 'nextPlan', d.nextPlan, { textarea: 1, ph: '예: #36 근관 충전 예정. 아스피린 복용 중, 출혈 주의' });
     h += '<div class="actions"><button class="btn primary" data-act="save-visit">저장</button><button class="btn" data-act="cancel">취소</button></div></section>';
@@ -3074,7 +3288,7 @@ var qrcode = function() {
         var where = it.teeth.length ? it.teeth.map(function (n) { return '#' + n + ' ' + toothName(n, lang); }).join(', ') : u('whole', lang);
         return '<div class="ex-item"><b>' + esc(t.names[li]) + '</b><span>' + esc(where) + '</span>' +
           (t.ex[li] ? '<span>' + esc(t.ex[li]) + '</span>' : '') +
-          (lang !== 'ko' ? '<span class="ko">' + esc(t.names[0] + ' · ' + teethLabel(it.teeth)) + '</span>' : '') + '</div>';
+          (lang !== 'ko' ? '<span class="ko">' + esc(t.names[0] + ' · ' + itemLabel(it)) + '</span>' : '') + '</div>';
       }).join('') + '</div>' +
       '<div style="display:grid;gap:6px"><h3>' + esc(u('caution', lang)) + '</h3>' + alertsHtml + '</div>' +
       (v.nextPlan ? '<div style="display:grid;gap:6px"><h3>' + esc(u('next', lang)) + '</h3><p class="small muted">' + esc(u('raw', lang)) + '</p><div class="ex-raw" lang="ko">' + esc(v.nextPlan) + '</div></div>' : '') +
@@ -3173,9 +3387,18 @@ var qrcode = function() {
     if (!p) st.sel = null;
     go('patientForm');
   }
+  function clearPick() { st.teethSel = []; st.itemCode = null; st.itemNote = ''; st.surfSel = []; }
+  function openPatient(id) {
+    var p = patient(id);
+    st.sel = id; st.toothFocus = null; st.pCode = null; st.pSurf = []; st.pNote = '';
+    st.dent = p && hasPrimary(p) ? 'prim' : 'perm';
+    go('patient');
+  }
+
   function startVisitForm(v) {
     st.draft = v ? clone(v) : { date: today(), provider: '', recorder: '', complaint: '', items: [], comment: '', nextPlan: '' };
-    st.teethSel = []; st.itemCode = 'exam'; st.itemNote = '';
+    st.draft.newPlans = [];
+    clearPick();
     go('visitForm');
   }
 
@@ -3203,13 +3426,27 @@ var qrcode = function() {
   function saveVisit() {
     var p = patient(st.sel), d = st.draft;
     if (!d.date) { flash('진료일을 넣어 주세요.', true); render(); return; }
-    if (!d.items.length && !d.comment && !d.nextPlan) { flash('치료 항목, 코멘트, 다음 진료자에게 남길 말 중 하나는 있어야 합니다.', true); render(); return; }
+    if (st.itemCode || st.teethSel.length) {
+      flash('고른 치아·치료를 아직 넣지 않았습니다. "오늘 한 치료로 넣기"나 "나중에 할 계획으로 넣기"를 누르거나, "선택 지우기"를 누르세요.', true);
+      render(); return;
+    }
+    var newPlans = d.newPlans || [];
+    if (!d.items.length && !d.comment && !d.nextPlan && !newPlans.length) { flash('치료, 코멘트, 다음 진료자에게 남길 말, 새 계획 중 하나는 있어야 합니다.', true); render(); return; }
+    delete d.newPlans;
     if (d.id) {
       for (var i = 0; i < p.visits.length; i++) if (p.visits[i].id === d.id) p.visits[i] = d;
     } else {
       d.id = uid(); d.createdAt = new Date().toISOString();
       p.visits.push(d);
     }
+    // 오늘 한 치료를 차트에 반영하고, 계획에서 온 치료는 계획을 완료로 바꾼다
+    var used = {};
+    d.items.forEach(function (it) { if (it.planId) used[it.planId] = true; applyItemToChart(p, it); });
+    p.plan.forEach(function (pl) {
+      if (used[pl.id]) { pl.done = d.date; pl.doneVisit = d.id; }
+      else if (pl.doneVisit === d.id) { pl.done = null; pl.doneVisit = null; }
+    });
+    newPlans.forEach(function (pl) { pl.id = uid(); pl.addedAt = d.date; pl.done = null; p.plan.push(pl); });
     save();
     st.draft = null;
     flash('진료 기록을 저장했습니다.');
@@ -3252,14 +3489,27 @@ var qrcode = function() {
     var c = st.confirm; st.confirm = null;
     if (!c) return;
     if (c.act === 'wipe') { db = { version: 1, patients: [] }; save(); st.sel = null; flash('모든 기록을 지웠습니다.'); go('home', true); return; }
-    if (c.act === 'import') { db = pendingImport; pendingImport = null; save(); st.sel = null; flash('백업 파일을 불러왔습니다.'); go('home', true); return; }
+    if (c.act === 'import') { db = normalize(pendingImport); pendingImport = null; save(); st.sel = null; flash('백업 파일을 불러왔습니다.'); go('home', true); return; }
     if (c.act === 'del-patient') {
       db.patients = db.patients.filter(function (x) { return x.id !== st.sel; });
       save(); st.sel = null; flash('환자를 삭제했습니다.'); go('home', true); return;
     }
+    if (c.act === 'leave') {
+      st.draft = null; clearPick();
+      if (c.target === 'open') { openPatient(c.id); return; }
+      if (c.target === 'new-patient') { startPatientForm(null); return; }
+      if (c.target === 'edit-patient') { startPatientForm(patient(st.sel)); return; }
+      return;
+    }
+    if (c.act === 'del-plan') {
+      var pp0 = patient(st.sel);
+      pp0.plan = pp0.plan.filter(function (pl) { return pl.id !== c.id; });
+      save(); flash('치료 계획을 삭제했습니다.'); render(); return;
+    }
     if (c.act === 'del-visit') {
       var p = patient(st.sel);
       p.visits = p.visits.filter(function (v) { return v.id !== c.id; });
+      p.plan.forEach(function (pl) { if (pl.doneVisit === c.id) { pl.done = null; pl.doneVisit = null; } });
       save(); flash('진료 기록을 삭제했습니다.'); render(); return;
     }
   }
@@ -3269,8 +3519,56 @@ var qrcode = function() {
     if (!t || t.tagName === 'SELECT') return;
     var act = t.getAttribute('data-act');
     var p = st.sel ? patient(st.sel) : null;
+    var inForm = st.view === 'visitForm' || st.view === 'patientForm';
+    if (inForm && (act === 'open' || act === 'new-patient' || (act === 'edit-patient' && st.view === 'visitForm'))) {
+      st.confirm = { text: '작성 중인 내용은 저장되지 않습니다. 이동할까요?', yes: '저장하지 않고 이동', act: 'leave', target: act, id: t.getAttribute('data-id') };
+      st.flash = null; render(); window.scrollTo(0, 0); return;
+    }
     switch (act) {
-      case 'open': st.sel = t.getAttribute('data-id'); st.toothFocus = null; go('patient'); break;
+      case 'open': openPatient(t.getAttribute('data-id')); break;
+      case 'dent': st.dent = t.getAttribute('data-d'); render(); break;
+      case 'tooth-close': st.toothFocus = null; render(); break;
+      case 'tstatus': {
+        var se = ensureEntry(p, st.toothFocus), sc = t.getAttribute('data-code'), si = se.st.indexOf(sc);
+        if (si >= 0) se.st.splice(si, 1); else se.st.push(sc);
+        save(); render(); break;
+      }
+      case 'tsurf': {
+        var fe = ensureEntry(p, st.toothFocus), fs = t.getAttribute('data-s');
+        var order = SURF_STATE.map(function (x) { return x[0]; });
+        var nextState = order[(order.indexOf(fe.s[fs] || '') + 1) % order.length];
+        if (nextState) fe.s[fs] = nextState; else delete fe.s[fs];
+        save(); render(); break;
+      }
+      case 'pick-ptreat': { var pc = t.getAttribute('data-code'); st.pCode = st.pCode === pc ? null : pc; render(); break; }
+      case 'psurf': { var ps = t.getAttribute('data-s'), pi = st.pSurf.indexOf(ps); if (pi >= 0) st.pSurf.splice(pi, 1); else st.pSurf.push(ps); render(); break; }
+      case 'add-plan':
+        if (!st.pCode) break;
+        p.plan.push({ id: uid(), code: st.pCode, teeth: [st.toothFocus], surf: sortSurf(st.pSurf), note: st.pNote.trim(), addedAt: today(), done: null });
+        st.pCode = null; st.pSurf = []; st.pNote = '';
+        save(); flash('치료 계획을 넣었습니다.'); render(); break;
+      case 'ask-del-plan':
+        st.confirm = { text: '이 치료 계획을 삭제합니다.', yes: '삭제', act: 'del-plan', id: t.getAttribute('data-id') }; st.flash = null; render(); window.scrollTo(0, 0); break;
+      case 'plan-do': {
+        var pd = null;
+        p.plan.forEach(function (pl) { if (pl.id === t.getAttribute('data-id')) pd = pl; });
+        startVisitForm(null);
+        if (pd) { st.draft.items.push({ code: pd.code, teeth: pd.teeth.slice(), surf: pd.surf || '', note: pd.note || '', planId: pd.id }); render(); }
+        break;
+      }
+      case 'plan-today': {
+        p.plan.forEach(function (pl) {
+          if (pl.id === t.getAttribute('data-id')) st.draft.items.push({ code: pl.code, teeth: pl.teeth.slice(), surf: pl.surf || '', note: pl.note || '', planId: pl.id });
+        });
+        render(); break;
+      }
+      case 'isurf': { var is = t.getAttribute('data-s'), ii = st.surfSel.indexOf(is); if (ii >= 0) st.surfSel.splice(ii, 1); else st.surfSel.push(is); render(); break; }
+      case 'clear-pick': clearPick(); render(); break;
+      case 'add-plan-form':
+        if (!st.itemCode) break;
+        st.draft.newPlans.push({ code: st.itemCode, teeth: st.teethSel.slice().sort(function (a, b) { return a - b; }), surf: st.teethSel.length === 1 ? sortSurf(st.surfSel) : '', note: st.itemNote.trim() });
+        clearPick(); render(); break;
+      case 'del-newplan': st.draft.newPlans.splice(+t.getAttribute('data-i'), 1); render(); break;
       case 'new-patient': startPatientForm(null); break;
       case 'edit-patient': startPatientForm(p); break;
       case 'new-visit': startVisitForm(null); break;
@@ -3293,15 +3591,18 @@ var qrcode = function() {
         if (st.view === 'visitForm') {
           var k = st.teethSel.indexOf(n);
           if (k >= 0) st.teethSel.splice(k, 1); else st.teethSel.push(n);
+          if (st.teethSel.length !== 1) st.surfSel = [];
         } else {
           st.toothFocus = st.toothFocus === n ? null : n;
+          st.pCode = null; st.pSurf = []; st.pNote = '';
         }
         render(); break;
       }
-      case 'pick-treat': st.itemCode = t.getAttribute('data-code'); render(); break;
+      case 'pick-treat': { var tc = t.getAttribute('data-code'); st.itemCode = st.itemCode === tc ? null : tc; render(); break; }
       case 'add-item':
-        st.draft.items.push({ code: st.itemCode, teeth: st.teethSel.slice().sort(function (a, b) { return a - b; }), note: st.itemNote.trim() });
-        st.teethSel = []; st.itemNote = ''; render(); break;
+        if (!st.itemCode) break;
+        st.draft.items.push({ code: st.itemCode, teeth: st.teethSel.slice().sort(function (a, b) { return a - b; }), surf: st.teethSel.length === 1 ? sortSurf(st.surfSel) : '', note: st.itemNote.trim() });
+        clearPick(); render(); break;
       case 'del-item': st.draft.items.splice(+t.getAttribute('data-i'), 1); render(); break;
       case 'export': exportData(); break;
       case 'import': $('importFile').click(); break;
@@ -3326,6 +3627,8 @@ var qrcode = function() {
     var t = e.target;
     if (t.id === 'q') { st.q = t.value; renderList(); return; }
     if (t.id === 'itemNote') { st.itemNote = t.value; return; }
+    if (t.id === 'pNote') { st.pNote = t.value; return; }
+    if (t.id === 'toothNote') { var pt = patient(st.sel); if (pt && st.toothFocus) { ensureEntry(pt, st.toothFocus).note = t.value; save(); } return; }
     var f = t.getAttribute && t.getAttribute('data-f');
     if (f && st.draft) st.draft[f] = t.type === 'checkbox' ? t.checked : t.value;
   });
