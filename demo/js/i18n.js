@@ -96,7 +96,27 @@ export const TERMS = {
   hypertension: { cat: 'conditions', ko: '고혈압', zh: '高血压', en: 'Hypertension', ru: 'Гипертония' },
   diabetes: { cat: 'conditions', ko: '당뇨', zh: '糖尿病', en: 'Diabetes', ru: 'Диабет' },
   heart: { cat: 'conditions', ko: '심장질환', zh: '心脏病', en: 'Heart disease', ru: 'Болезнь сердца' },
-  pregnancy: { cat: 'conditions', ko: '임신 중', zh: '怀孕中', en: 'Pregnant', ru: 'Беременность' }
+  pregnancy: { cat: 'conditions', ko: '임신 중', zh: '怀孕中', en: 'Pregnant', ru: 'Беременность' },
+  // Terms used by links from the Noksan clinic record prototype (prototype/web/noksan). linkOnly: not offered as choices in the demo's own edit screen.
+  exam: { cat: 'proc', ko: '검진', zh: '口腔检查', en: 'Dental examination', ru: 'Осмотр' },
+  xray: { cat: 'proc', ko: '엑스레이 촬영', zh: '拍X光片', en: 'X-ray', ru: 'Рентгеновский снимок' },
+  resin_filling: { cat: 'proc', ko: '레진 충전', zh: '树脂充填', en: 'Composite (resin) filling', ru: 'Композитная пломба' },
+  temp_filling: { cat: 'proc', ko: '임시 충전', zh: '临时充填', en: 'Temporary filling', ru: 'Временная пломба' },
+  gum_treatment: { cat: 'proc', ko: '잇몸치료', zh: '牙周治疗', en: 'Periodontal treatment', ru: 'Лечение дёсен' },
+  fluoride: { cat: 'proc', ko: '불소 도포', zh: '涂氟', en: 'Fluoride application', ru: 'Фторирование' },
+  prosthesis: { cat: 'proc', ko: '크라운·보철', zh: '牙冠/修复体', en: 'Crown / prosthesis', ru: 'Коронка / протез' },
+  denture_adjust: { cat: 'proc', ko: '틀니 조정', zh: '假牙调整', en: 'Denture adjustment', ru: 'Коррекция протеза' },
+  implant_check: { cat: 'proc', ko: '임플란트 점검', zh: '种植牙检查', en: 'Implant check', ru: 'Осмотр импланта' },
+  medication: { cat: 'proc', ko: '약 처방', zh: '开药', en: 'Medication prescribed', ru: 'Назначены лекарства' },
+  oral_hygiene: { cat: 'proc', ko: '구강 위생 교육', zh: '口腔卫生指导', en: 'Oral hygiene instruction', ru: 'Обучение гигиене полости рта' },
+  referral: { cat: 'proc', ko: '다른 병원 의뢰', zh: '转诊', en: 'Referred to another clinic', ru: 'Направлен в другую клинику' },
+  other_tx: { cat: 'proc', ko: '기타 치료', zh: '其他治疗', en: 'Other treatment', ru: 'Другое лечение' },
+  anticoagulant: { cat: 'meds', linkOnly: true, bleed: true, ko: '항응고제', zh: '抗凝药', en: 'Anticoagulant', ru: 'Антикоагулянт' },
+  antiplatelet: { cat: 'meds', linkOnly: true, bleed: true, ko: '항혈소판제(아스피린 등)', zh: '抗血小板药（如阿司匹林）', en: 'Antiplatelet (e.g. aspirin)', ru: 'Антиагрегант (аспирин и др.)' },
+  bisphosphonate: { cat: 'meds', linkOnly: true, ko: '골다공증약(비스포스포네이트)', zh: '双膦酸盐类药物', en: 'Bisphosphonate', ru: 'Бисфосфонат' },
+  diabetes_med: { cat: 'meds', linkOnly: true, ko: '당뇨약', zh: '降糖药', en: 'Diabetes medication', ru: 'Сахароснижающее' },
+  bleeding_disorder: { cat: 'conditions', linkOnly: true, ko: '출혈 경향', zh: '出血倾向', en: 'Bleeding disorder', ru: 'Нарушение свёртываемости' },
+  hepatitis: { cat: 'conditions', linkOnly: true, ko: '간염', zh: '肝炎', en: 'Hepatitis', ru: 'Гепатит' }
 };
 
 export const NAT = {

@@ -92,6 +92,8 @@ export function expand(o) {
     scope,
     patient: { name: str(o.p[0]), name_en: str(o.p[1]), birth: str(o.p[2], 10), nat: str(o.p[3], 4), lang: str(o.p[4], 4) },
     sharedAt: time(o.t), expiresAt: time(o.e),
+    clinic: str(o.h),   // optional clinic name; links from prototype/web/noksan set it, the demo's own links do not
+
     records: [], self: null
   };
   if (scope !== 'em' && Array.isArray(o.r)) {

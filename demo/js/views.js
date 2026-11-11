@@ -100,7 +100,7 @@ export function detail(s, i) {
 export function edit(s) {
   const L = s.lang, self = s.self;
   const cat = (c) => {
-    const ids = Object.keys(TERMS).filter(k => TERMS[k].cat === c);
+    const ids = Object.keys(TERMS).filter(k => TERMS[k].cat === c && !TERMS[k].linkOnly);
     const custom = self.custom.map((x, i) => ({ x, i })).filter(o => o.x.cat === c);
     return '<section class="sec"><h2>' + t(c, L) + '</h2><div class="chips">' +
       ids.map(id => '<button type="button" class="chip" data-act="toggle" data-c="' + c + '" data-id="' + id + '" aria-pressed="' + (self[c].indexOf(id) > -1) + '">' + term(id, L) + '</button>').join('') + '</div>' +
@@ -182,9 +182,9 @@ export function doctor(data, L, fromPatient) {
     (data.scope !== 'em'
       ? '<section class="sec"><h2>' + d('chart', L) + '</h2>' + chart(data.records, false) + '</section>' +
         '<section class="sec"><h2>' + d('hist', L) + '</h2><div class="tbl-wrap"><table><thead><tr><th>' + d('date', L) + '</th><th>' + d('tooth', L) + '</th><th>' + d('proc', L) + '</th><th>' + d('mat', L) + '</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>' +
-        '<div class="card note"><h2>' + d('clinic', L) + '</h2><p>' + CLINIC[L] + '<br><span class="mono">' + CLINIC_PHONE + '</span></p></div>'
+        '<div class="card note"><h2>' + d('clinic', L) + '</h2><p>' + (data.clinic ? esc(data.clinic) : CLINIC[L] + '<br><span class="mono">' + CLINIC_PHONE + '</span>') + '</p></div>'
       : '<p class="sub">' + d('scope_note', L) + '</p>') +
-    (s ? '<p class="foot">' + d('contact', L) + ': ' + esc(s.contact.name) + ' · <span class="mono">' + esc(s.contact.phone) + '</span></p>' : '') +
+    (s && (s.contact.name || s.contact.phone) ? '<p class="foot">' + d('contact', L) + ': ' + esc(s.contact.name) + ' · <span class="mono">' + esc(s.contact.phone) + '</span></p>' : '') +
     '<p class="foot">' + (data.sharedAt ? d('shared', L) + ' ' + fmtTime(data.sharedAt, L) : '') + (data.expiresAt ? ' · ' + d('expires', L) + ' ' + fmtTime(data.expiresAt, L) : '') + '</p>' +
     '<p class="foot">' + d('foot', L) + ' ' + d('expiry_note', L) + '</p>' + back;
 }

@@ -1,0 +1,3348 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>녹산 진료 기록</title>
+<style>
+/* Layout: patient list on the left, one patient's chart on the right; stacks on narrow screens.
+   System fonts only so it works offline on old clinic PCs. */
+:root {
+  --bg: #F3F6F5; --surface: #FFFFFF; --fg: #15242A; --muted: #5A6A6E; --line: #D3DCDA;
+  --accent: #0C6A63; --accent-soft: #E0EFEB; --on-accent: #FFFFFF;
+  --danger: #A23A2E; --danger-soft: #F8E5E1; --warn: #7A5600; --warn-soft: #F7ECCF;
+  --sans: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0F181B; --surface: #172428; --fg: #E4EDEB; --muted: #9AAEAD; --line: #2C3E43;
+    --accent: #5CC4B6; --accent-soft: #163631; --on-accent: #0F181B;
+    --danger: #F0A396; --danger-soft: #3C2220; --warn: #E5C46B; --warn-soft: #393013;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+h1, h2, h3, p { margin: 0; }
+h2 { font-size: 22px; line-height: 1.35; }
+h3 { font-size: 15px; font-weight: 700; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+.top { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.brand { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.brand h1 { font-size: 18px; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.status { font-size: 13px; color: var(--muted); }
+.status.bad { color: var(--danger); font-weight: 600; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 6px 12px; line-height: 1.4; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btn.danger { color: var(--danger); }
+.btn.sm { padding: 3px 9px; font-size: 13px; }
+.btn:disabled, a.btn[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+a.btn { text-decoration: none; color: inherit; display: inline-block; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
+
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: calc(100vh - 56px); }
+aside { border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; min-width: 0; }
+.side-head { padding: 12px; display: grid; gap: 8px; border-bottom: 1px solid var(--line); }
+.side-head input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.plist { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.plist button { width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: none; padding: 10px 12px; display: grid; gap: 2px; }
+.plist button:hover { background: var(--bg); }
+.plist button[aria-current="true"] { background: var(--accent-soft); }
+.pl-top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.pl-name { font-weight: 600; }
+.empty-list { padding: 16px 12px; color: var(--muted); }
+
+main { padding: 20px max(16px, 3vw) 48px; min-width: 0; display: grid; gap: 20px; align-content: start; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.chip { display: inline-block; border-radius: 4px; padding: 0 8px; font-size: 13px; font-weight: 600; line-height: 1.7; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.chip.danger { background: var(--danger-soft); color: var(--danger); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.plain { background: var(--bg); color: var(--muted); font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.confirm { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 12px 14px; border-radius: 8px; background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.flash { padding: 10px 14px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.flash.bad { background: var(--danger-soft); color: var(--danger); }
+
+.phead { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.phead .who { display: grid; gap: 2px; min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.alerts { border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; }
+.alerts.has { background: var(--danger-soft); }
+.alerts.none { background: var(--accent-soft); }
+.alerts.unknown { background: var(--warn-soft); }
+.alerts .label { font-size: 13px; font-weight: 700; }
+.handoff { border-left: 4px solid var(--accent); background: var(--surface); padding: 12px 14px; border-radius: 0 8px 8px 0; display: grid; gap: 4px; }
+.two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+
+.teeth { display: grid; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.trow { display: flex; gap: 3px; align-items: center; }
+.trow .mid { width: 10px; align-self: stretch; border-left: 2px solid var(--line); margin-left: 6px; }
+.tooth { width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); font-family: var(--mono); font-size: 13px; padding: 0; }
+.tooth.has { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.tooth.sel { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.tooth.focus { outline: 2px solid var(--fg); outline-offset: 1px; }
+.orient { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); max-width: 590px; }
+
+.visits { display: grid; gap: 12px; }
+.visit { display: grid; gap: 8px; }
+.visit-head { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: baseline; }
+.vdate { font-family: var(--mono); font-weight: 700; font-size: 16px; }
+.kv { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 12px; }
+.kv dt { color: var(--muted); font-size: 13px; padding-top: 1px; }
+.kv dd { margin: 0; white-space: pre-wrap; }
+
+.form { display: grid; gap: 14px; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label, .field .lbl { font-size: 13px; font-weight: 600; color: var(--muted); }
+.field input, .field select, .field textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.field textarea { min-height: 70px; resize: vertical; }
+.req { color: var(--danger); }
+.toggle { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 11px; font-size: 14px; }
+.toggle[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.toggle.risk[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); }
+.items { display: grid; gap: 6px; }
+.item { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+.item .grow { flex: 1 1 160px; min-width: 0; }
+.adder { display: grid; gap: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; }
+
+.guide { display: grid; gap: 8px; padding-left: 20px; margin: 0; }
+
+.explain { max-width: 640px; background: #FFFFFF; color: #15242A; border: 1px solid var(--line); border-radius: 8px; padding: 24px; display: grid; gap: 16px; }
+.explain .muted { color: #5A6A6E; }
+.explain h2 { font-size: 24px; }
+.ex-item { display: grid; gap: 2px; padding: 10px 0; border-top: 1px solid #D3DCDA; }
+.ex-item .ko { font-size: 13px; color: #5A6A6E; }
+.ex-box { background: #F8E5E1; color: #6E241B; border-radius: 6px; padding: 10px 12px; }
+.ex-raw { background: #F3F6F5; border-radius: 6px; padding: 10px 12px; white-space: pre-wrap; }
+.ex-foot { font-size: 12px; color: #5A6A6E; }
+
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  aside { border-right: 0; border-bottom: 1px solid var(--line); }
+  .plist { max-height: 40vh; }
+  .two { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  .top, aside, .no-print { display: none !important; }
+  .layout { display: block; }
+  main { padding: 0; }
+  body { background: #FFFFFF; }
+  .explain { border: 0; max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>녹산 진료 기록</h1>
+    <span class="chip warn">시제품 · 이 기기에만 저장 · 가상 환자로 시연</span>
+  </div>
+  <div class="tools">
+    <span id="status" class="status"></span>
+    <button class="btn sm" data-act="export">백업 파일 저장</button>
+    <button class="btn sm" data-act="import">백업 불러오기</button>
+    <button class="btn sm" data-act="add-samples">가상 환자 넣기</button>
+    <button class="btn sm danger" data-act="ask-wipe">전부 지우기</button>
+    <input id="importFile" type="file" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="side-head">
+      <input id="q" type="search" placeholder="차트 번호·이름 검색" autocomplete="off">
+      <button class="btn primary" data-act="new-patient">새 환자 등록</button>
+    </div>
+    <ul id="plist" class="plist"></ul>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<!-- QR 라이브러리: prototype/web/demo/js/vendor/qrcode.js 를 그대로 넣음 (Kazuhiko Arase, MIT). 인터넷 없이 QR을 그리기 위해 -->
+<script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  var main = $('main');
+
+  /* ---------- 용어 사전 (번역은 의료인 검수 전) ---------- */
+  var TREAT = [
+    ['exam', '검진', 'Check-up', '口腔检查', 'Осмотр',
+      ['치아와 잇몸 상태를 살펴봤어요.', 'We checked your teeth and gums.', '我们检查了您的牙齿和牙龈。', 'Мы осмотрели ваши зубы и дёсны.']],
+    ['xray', '엑스레이 촬영', 'X-ray', '拍X光片', 'Рентген',
+      ['치아 속과 뼈를 보려고 사진을 찍었어요.', 'We took an X-ray to see inside the tooth and bone.', '我们拍了X光片，查看牙齿内部和骨头。', 'Мы сделали снимок, чтобы увидеть зуб и кость изнутри.']],
+    ['scaling', '스케일링', 'Scaling (cleaning)', '洗牙', 'Снятие зубного камня',
+      ['치석을 제거했어요. 며칠 동안 이가 시릴 수 있어요.', 'We removed tartar. Your teeth may feel sensitive for a few days.', '我们清除了牙结石。之后几天牙齿可能会敏感。', 'Мы удалили зубной камень. Несколько дней зубы могут быть чувствительными.']],
+    ['resin', '레진 충전', 'Resin filling', '树脂补牙', 'Пломба (композит)',
+      ['충치를 제거하고 치아 색 재료로 메웠어요.', 'We removed the decay and filled the tooth with tooth-coloured material.', '我们去除了龋坏部分，并用牙色材料补好。', 'Мы удалили кариес и поставили пломбу цвета зуба.']],
+    ['temp', '임시 충전', 'Temporary filling', '临时补牙', 'Временная пломба',
+      ['임시로 막아 두었어요. 다음 진료 때 마무리해야 해요.', 'This is a temporary filling. It must be finished at your next visit.', '这是临时补牙，下次就诊时需要完成治疗。', 'Это временная пломба. Лечение нужно закончить в следующий визит.']],
+    ['extraction', '발치', 'Extraction', '拔牙', 'Удаление зуба',
+      ['치아를 뽑았어요. 거즈를 1시간 물고, 오늘은 침을 뱉거나 빨대를 쓰지 마세요.', 'We removed the tooth. Bite on the gauze for 1 hour. Today, do not spit or use a straw.', '我们拔了牙。请咬住纱布1小时，今天不要吐口水，也不要用吸管。', 'Мы удалили зуб. Держите марлю 1 час. Сегодня не сплёвывайте и не пейте через трубочку.']],
+    ['endo', '신경치료', 'Root canal treatment', '根管治疗', 'Лечение каналов',
+      ['치아 속 신경을 치료했어요. 여러 번 와야 끝나요.', 'We treated the nerve inside the tooth. It takes several visits to finish.', '我们治疗了牙齿内部的神经，需要多次就诊才能完成。', 'Мы лечили нерв внутри зуба. Для завершения нужно несколько визитов.']],
+    ['perio', '잇몸치료', 'Gum treatment', '牙周治疗', 'Лечение дёсен',
+      ['잇몸 속 치석과 염증을 치료했어요.', 'We treated tartar and inflammation under the gums.', '我们治疗了牙龈下的牙结石和炎症。', 'Мы лечили камень и воспаление под дёснами.']],
+    ['fluoride', '불소 도포', 'Fluoride', '涂氟', 'Фторирование',
+      ['충치 예방 약을 발랐어요. 30분 동안 먹거나 마시지 마세요.', 'We applied fluoride to prevent decay. Do not eat or drink for 30 minutes.', '我们涂了防龋的氟化物。30分钟内请不要吃喝。', 'Мы нанесли фтор для защиты от кариеса. Не ешьте и не пейте 30 минут.']],
+    ['prosth', '크라운·보철', 'Crown / prosthesis', '牙冠/修复', 'Коронка / протез',
+      ['치아를 씌우거나 새로 만들어 넣는 치료를 했어요.', 'We worked on a crown or a replacement tooth.', '我们进行了牙冠或修复体治疗。', 'Мы работали над коронкой или протезом.']],
+    ['denture', '틀니 조정', 'Denture adjustment', '假牙调整', 'Коррекция протеза',
+      ['틀니가 편하게 맞도록 조정했어요.', 'We adjusted your denture so it fits comfortably.', '我们调整了假牙，让它戴着更舒服。', 'Мы подогнали протез, чтобы он удобно сидел.']],
+    ['implant', '임플란트 점검', 'Implant check', '种植牙检查', 'Проверка импланта',
+      ['임플란트와 주변 잇몸 상태를 확인했어요.', 'We checked your implant and the gum around it.', '我们检查了种植牙和周围牙龈的状态。', 'Мы проверили имплант и десну вокруг него.']],
+    ['rx', '약 처방', 'Medication', '开药', 'Лекарства',
+      ['약을 처방했어요. 적힌 대로 드세요.', 'We prescribed medicine. Take it as written.', '我们开了药，请按说明服用。', 'Мы назначили лекарство. Принимайте, как написано.']],
+    ['edu', '구강 위생 교육', 'Oral hygiene advice', '口腔卫生指导', 'Советы по гигиене',
+      ['칫솔질 방법을 안내했어요.', 'We showed you how to brush and clean your teeth.', '我们指导了刷牙方法。', 'Мы показали, как правильно чистить зубы.']],
+    ['referral', '다른 병원 의뢰', 'Referral', '转诊', 'Направление',
+      ['다른 병원에서 치료를 더 받아야 해요.', 'You need further treatment at another hospital.', '您需要到其他医院接受进一步治疗。', 'Вам нужно продолжить лечение в другой больнице.']],
+    ['other', '기타', 'Other', '其他', 'Другое', ['', '', '', '']]
+  ];
+  var LANG_IDX = { ko: 0, en: 1, zh: 2, ru: 3 };
+  var LANG_NAME = { ko: '한국어', en: 'English', zh: '中文', ru: 'Русский' };
+  var TR = {};
+  TREAT.forEach(function (t) { TR[t[0]] = { names: [t[1], t[2], t[3], t[4]], ex: t[5] }; });
+
+  // [code, 한국어, en, zh, ru, 위험 표시]
+  var ALERTS = {
+    allergy: { label: '알레르기', items: [
+      ['penicillin', '페니실린', 'Penicillin', '青霉素', 'Пенициллин', 1],
+      ['local_anes', '국소마취제', 'Local anaesthetic', '局部麻醉药', 'Местная анестезия', 1],
+      ['latex', '라텍스', 'Latex', '乳胶', 'Латекс', 1],
+      ['nsaid', '소염진통제(NSAIDs)', 'NSAIDs (e.g. ibuprofen)', '非甾体抗炎药', 'НПВП (ибупрофен и др.)', 1]
+    ] },
+    med: { label: '복용약', items: [
+      ['anticoag', '항응고제(와파린 등)', 'Anticoagulant (e.g. warfarin)', '抗凝药（如华法林）', 'Антикоагулянты (варфарин и др.)', 1],
+      ['antiplatelet', '항혈소판제(아스피린 등)', 'Antiplatelet (e.g. aspirin)', '抗血小板药（如阿司匹林）', 'Антиагреганты (аспирин и др.)', 1],
+      ['bisphos', '골다공증약(비스포스포네이트)', 'Bisphosphonate', '双膦酸盐类药物', 'Бисфосфонаты', 1],
+      ['diabetes_med', '당뇨약', 'Diabetes medication', '降糖药', 'Сахароснижающие', 0]
+    ] },
+    cond: { label: '지병', items: [
+      ['htn', '고혈압', 'High blood pressure', '高血压', 'Гипертония', 0],
+      ['dm', '당뇨', 'Diabetes', '糖尿病', 'Диабет', 0],
+      ['heart', '심장질환', 'Heart disease', '心脏病', 'Болезни сердца', 1],
+      ['bleed', '출혈 경향', 'Bleeding disorder', '出血倾向', 'Нарушение свёртываемости', 1],
+      ['preg', '임신', 'Pregnancy', '怀孕', 'Беременность', 1],
+      ['hep', '간염', 'Hepatitis', '肝炎', 'Гепатит', 0]
+    ] }
+  };
+  var AL = {};
+  Object.keys(ALERTS).forEach(function (g) {
+    ALERTS[g].items.forEach(function (a) { AL[a[0]] = { group: g, names: [a[1], a[2], a[3], a[4]], risk: !!a[5] }; });
+  });
+
+  var QUAD = [null,
+    ['오른쪽 위', 'upper right', '右上', 'верхний правый'],
+    ['왼쪽 위', 'upper left', '左上', 'верхний левый'],
+    ['왼쪽 아래', 'lower left', '左下', 'нижний левый'],
+    ['오른쪽 아래', 'lower right', '右下', 'нижний правый']];
+  var TTYPE = [null,
+    ['가운데 앞니', 'central incisor', '中切牙', 'центральный резец'],
+    ['옆 앞니', 'lateral incisor', '侧切牙', 'боковой резец'],
+    ['송곳니', 'canine', '尖牙', 'клык'],
+    ['첫째 작은어금니', 'first premolar', '第一前磨牙', 'первый премоляр'],
+    ['둘째 작은어금니', 'second premolar', '第二前磨牙', 'второй премоляр'],
+    ['첫째 큰어금니', 'first molar', '第一磨牙', 'первый моляр'],
+    ['둘째 큰어금니', 'second molar', '第二磨牙', 'второй моляр'],
+    ['사랑니', 'wisdom tooth', '智齿', 'зуб мудрости']];
+  function toothName(n, lang) {
+    var i = LANG_IDX[lang] || 0, q = QUAD[Math.floor(n / 10)], t = TTYPE[n % 10];
+    if (!q || !t) return '#' + n;
+    if (lang === 'zh') return q[i] + t[i];
+    if (lang === 'ru') return t[i] + ', ' + q[i];
+    return q[i] + ' ' + t[i];
+  }
+
+  var UI = {
+    title: ['치과 진료 안내', 'Your dental visit', '您的牙科就诊说明', 'Информация о вашем лечении'],
+    date: ['진료일', 'Date', '就诊日期', 'Дата'],
+    done: ['받은 치료', 'What we did', '本次治疗', 'Что было сделано'],
+    whole: ['입 전체', 'Whole mouth', '全口', 'Вся полость рта'],
+    caution: ['진료진이 알고 있는 주의사항', 'Health notes we have on file', '我们记录的健康注意事项', 'Важные сведения о здоровье'],
+    none: ['없음 (확인함)', 'None (confirmed)', '无（已确认）', 'Нет (подтверждено)'],
+    unknown: ['아직 확인하지 않았어요. 진료진에게 알려 주세요.', 'Not checked yet. Please tell the dental team.', '尚未确认，请告诉医护人员。', 'Ещё не уточнено. Сообщите, пожалуйста, врачу.'],
+    next: ['다음 진료 계획', 'Plan for next visit', '下次就诊计划', 'План следующего визита'],
+    raw: ['진료진이 한국어로 적은 원문입니다. 번역되지 않았습니다.', 'Written by the dental team in Korean. Not translated.', '以下为医护人员的韩文原文，未翻译。', 'Запись врача на корейском языке, без перевода.'],
+    foot: ['녹산 의료봉사 · 시제품 화면 · 번역은 아직 의료인 검수 전입니다.', 'Noksan volunteer dental clinic · prototype · translations not yet reviewed by clinicians.', 'Noksan 医疗志愿服务 · 试用版 · 翻译尚未经医护人员审核。', 'Волонтёрская клиника Ноксан · прототип · перевод ещё не проверен врачами.']
+  };
+  function u(key, lang) { return UI[key][LANG_IDX[lang] || 0]; }
+
+  /* ---------- 의료 여권 (환자가 들고 가는 카드 + QR) ----------
+     QR 링크는 공개 데모의 의사 화면(#/v/)을 연다. 기록은 링크 # 뒤에만 들어 있어 서버로 가지 않는다.
+     형식은 prototype/web/demo/js/share.js 의 v:1 과 같고, h(병원 이름)만 더한다. */
+  var DEMO_URL = 'https://dongwook9805.github.io/care-passport-demo/demo/';
+  var CLINIC_LABEL = 'Noksan volunteer dental clinic · 녹산 의료봉사';
+  var MAX_URL = 2800;     // QR 하나에 무리 없이 들어가는 길이
+  var PROC_MAP = { exam: 'exam', xray: 'xray', scaling: 'scaling', resin: 'resin_filling', temp: 'temp_filling', extraction: 'extraction', endo: 'root_canal',
+    perio: 'gum_treatment', fluoride: 'fluoride', prosth: 'prosthesis', denture: 'denture_adjust', implant: 'implant_check', rx: 'medication', edu: 'oral_hygiene', referral: 'referral', other: 'other_tx' };
+  var ALERT_MAP = { penicillin: 'penicillin', local_anes: 'local_anesthetic', latex: 'latex', nsaid: 'nsaid', anticoag: 'anticoagulant', antiplatelet: 'antiplatelet',
+    bisphos: 'bisphosphonate', diabetes_med: 'diabetes_med', htn: 'hypertension', dm: 'diabetes', heart: 'heart', bleed: 'bleeding_disorder', preg: 'pregnancy', hep: 'hepatitis' };
+  var NAT_CODE = { '중국': 'CN', '우즈베키스탄': 'UZ', '러시아': 'RU', '카자흐스탄': 'KZ', '베트남': 'VN', '미국': 'US' };
+  // 카드에 쓰는 국적 이름 (ko, en, zh, ru). 목록에 없으면 적힌 그대로
+  var NAT_NAME = { CN: ['중국', 'China', '中国', 'Китай'], UZ: ['우즈베키스탄', 'Uzbekistan', '乌兹别克斯坦', 'Узбекистан'], RU: ['러시아', 'Russia', '俄罗斯', 'Россия'],
+    KZ: ['카자흐스탄', 'Kazakhstan', '哈萨克斯坦', 'Казахстан'], VN: ['베트남', 'Vietnam', '越南', 'Вьетнам'], US: ['미국', 'United States', '美国', 'США'] };
+  var PP = {
+    passport: ['의료 여권', '医疗护照', 'Dental passport', 'Медицинский паспорт'],
+    born: ['출생', '出生', 'Born', 'Год рождения'],
+    alerts: ['치료 전 꼭 확인', '治疗前请确认', 'Check before treatment', 'Проверить перед лечением'],
+    history: ['치료 기록', '治疗记录', 'Treatment history', 'История лечения'],
+    scan: ['다른 병원 의사에게 이 QR을 보여 주세요. 전체 기록이 영어로 열립니다.', '请把这个二维码给其他医院的医生看，可用英文查看完整记录。', 'Show this QR code to your next doctor. It opens the full record in English.', 'Покажите этот QR-код врачу. Откроется полная запись на английском.'],
+    more: ['이전 기록 {n}건은 QR 안에 있어요.', '另有{n}条较早记录在二维码中。', '{n} earlier entries are in the QR record.', 'Ещё {n} записей — в QR-коде.'],
+    novisit: ['아직 치료 기록이 없어요.', '还没有治疗记录。', 'No treatment recorded yet.', 'Записей о лечении пока нет.']
+  };
+  // PP 배열 순서는 ko, zh, en, ru
+  function pp(key, lang) { return PP[key][{ ko: 0, zh: 1, en: 2, ru: 3 }[lang] || 0]; }
+
+  function passportRows(p) {
+    var rows = [];
+    sortedVisits(p).forEach(function (v) {
+      v.items.forEach(function (it) {
+        var code = PROC_MAP[it.code] || 'other_tx';
+        if (it.teeth.length) it.teeth.forEach(function (n) { rows.push([v.date, n, code]); });
+        else rows.push([v.date, 0, code]);
+      });
+    });
+    return rows; // 최근 것이 앞
+  }
+  function passportPayload(p, rows) {
+    var g = { allergy: [], med: [], cond: [] };
+    p.alerts.forEach(function (c) { if (AL[c] && ALERT_MAP[c]) g[AL[c].group].push(ALERT_MAP[c]); });
+    return { v: 1, s: 'all', p: [p.name, p.nameAlt || p.name, p.birthYear || '', NAT_CODE[(p.nationality || '').trim()] || '', p.lang || ''],
+      t: Date.now(), h: CLINIC_LABEL, r: rows, a: g.allergy, m: g.med, c: g.cond };
+  }
+  function toB64url(bytes) {
+    var s = '';
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function encodeLink(obj) {
+    var json = new TextEncoder().encode(JSON.stringify(obj));
+    var plain = 'j' + toB64url(json);
+    if (typeof CompressionStream !== 'function') return Promise.resolve(plain);
+    return new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()
+      .then(function (buf) { return 'z' + toB64url(new Uint8Array(buf)); }, function () { return plain; });
+  }
+  // 링크가 너무 길면 오래된 기록부터 뺀다. 데모는 40줄까지만 읽는다.
+  function buildPassportLink(p) {
+    var all = passportRows(p), rows = all.slice(0, 40);
+    function attempt() {
+      return encodeLink(passportPayload(p, rows)).then(function (link) {
+        var url = DEMO_URL + '#/v/' + link;
+        if (url.length > MAX_URL && rows.length > 1) { rows = rows.slice(0, rows.length - 1); return attempt(); }
+        return { url: url, dropped: all.length - rows.length };
+      });
+    }
+    return attempt();
+  }
+
+  function qrMatrix(text) {
+    var qr = window.qrcode(0, 'L');
+    qr.addData(text);
+    qr.make();
+    return qr;
+  }
+
+  function drawPassportCard(p, lang, url) {
+    var W = 1080, PAD = 64, li = LANG_IDX[lang] || 0;
+    var FONT = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Segoe UI",Arial,sans-serif';
+    var MONO = 'Menlo,Consolas,"Courier New",monospace';
+    var c = document.createElement('canvas');
+    c.width = W; c.height = 5000;
+    var x = c.getContext('2d');
+    var y = 0;
+    x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, c.height);
+
+    function wrap(text, maxW) {
+      var out = [], line = '';
+      String(text).split(/(\s+)/).forEach(function (word) {
+        var test = line + word;
+        if (x.measureText(test).width <= maxW || !line) {
+          if (x.measureText(test).width > maxW) {           // 공백 없는 긴 글(중국어 등)은 글자 단위로
+            Array.prototype.forEach.call(word, function (ch) {
+              if (x.measureText(line + ch).width > maxW && line) { out.push(line); line = ''; }
+              line += ch;
+            });
+          } else line = test;
+        } else { out.push(line.replace(/\s+$/, '')); line = word.replace(/^\s+/, ''); }
+      });
+      if (line) out.push(line);
+      return out;
+    }
+    function text(str, size, opt) {
+      opt = opt || {};
+      x.font = (opt.weight || '400') + ' ' + size + 'px ' + (opt.mono ? MONO : FONT);
+      x.fillStyle = opt.color || '#15242A';
+      x.textBaseline = 'top';
+      var lh = Math.round(size * 1.4), left = opt.x || PAD;
+      wrap(str, opt.maxW || (W - left - PAD)).forEach(function (l) { x.fillText(l, left, y); y += lh; });
+      y += opt.after || 0;
+    }
+
+    // 머리띠
+    x.fillStyle = '#0C6A63'; x.fillRect(0, 0, W, 170);
+    y = 40;
+    text('K-CARE LINK', 26, { weight: '700', color: '#BFE3DC', after: 6 });
+    text(pp('passport', lang) + (lang !== 'en' ? '  ·  Dental passport' : ''), 46, { weight: '700', color: '#FFFFFF' });
+    y = 210;
+
+    text(p.nameAlt || p.name, 54, { weight: '700', after: 4 });
+    var natCode = NAT_CODE[(p.nationality || '').trim()];
+    var meta = [p.birthYear ? pp('born', lang) + ' ' + p.birthYear : '', natCode ? NAT_NAME[natCode][li] : (p.nationality || '')].filter(Boolean).join('  ·  ');
+    if (p.nameAlt && p.nameAlt !== p.name) meta = p.name + (meta ? '  ·  ' + meta : '');
+    if (meta) text(meta, 28, { color: '#5A6A6E' });
+    y += 30;
+
+    // 주의사항
+    text(pp('alerts', lang) + (lang !== 'en' ? ' · Check before treatment' : ''), 30, { weight: '700', after: 12 });
+    var boxTop = y, alertLines = [];
+    if (p.alerts.length) p.alerts.forEach(function (code) { var a = AL[code]; if (a) alertLines.push(a.names[li] + (lang !== 'en' ? '  /  ' + a.names[1] : '')); });
+    else alertLines.push(p.noneConfirmed ? UI.none[li] + (lang !== 'en' ? '  /  ' + UI.none[1] : '') : UI.unknown[li]);
+    var risky = p.alerts.length > 0;
+    // 상자 높이를 먼저 재고 칠한 뒤 글자를 쓴다
+    var saveY = y; y += 22;
+    x.font = '600 30px ' + FONT;
+    var hgt = 0;
+    alertLines.forEach(function (l) { hgt += wrap(l, W - PAD * 2 - 48).length * 42 + 8; });
+    x.fillStyle = risky ? '#F8E5E1' : '#E0EFEB';
+    x.fillRect(PAD, boxTop, W - PAD * 2, hgt + 36);
+    y = saveY + 22;
+    alertLines.forEach(function (l) { text(l, 30, { weight: '600', color: risky ? '#7E2A20' : '#0C5A54', x: PAD + 24, maxW: W - PAD * 2 - 48, after: 8 }); });
+    y = boxTop + hgt + 36 + 40;
+
+    // 치료 기록 (최근 순, 카드에는 12줄까지)
+    text(pp('history', lang) + (lang !== 'en' ? ' · Treatment history' : ''), 30, { weight: '700', after: 8 });
+    var lines = [];
+    sortedVisits(p).forEach(function (v) { v.items.forEach(function (it) { lines.push({ date: v.date, it: it }); }); });
+    if (!lines.length) text(pp('novisit', lang), 28, { color: '#5A6A6E' });
+    lines.slice(0, 12).forEach(function (o) {
+      x.fillStyle = '#D3DCDA'; x.fillRect(PAD, y, W - PAD * 2, 2); y += 16;
+      var it = o.it, t = TR[it.code] || TR.other;
+      var startY = y;
+      text(o.date, 26, { mono: true, color: '#5A6A6E', x: PAD, maxW: 200 });
+      y = startY;
+      var where = it.teeth.length ? it.teeth.map(function (n) { return '#' + n + ' ' + toothName(n, lang); }).join(', ') : u('whole', lang);
+      text(t.names[li], 32, { weight: '700', x: PAD + 210 });
+      text(where, 26, { color: '#15242A', x: PAD + 210 });
+      if (lang !== 'en') {
+        var whereEn = it.teeth.length ? it.teeth.map(function (n) { return '#' + n + ' ' + toothName(n, 'en'); }).join(', ') : 'Whole mouth';
+        text(t.names[1] + ' · ' + whereEn, 24, { color: '#5A6A6E', x: PAD + 210 });
+      }
+      y += 14;
+    });
+    if (lines.length > 12) text(pp('more', lang).replace('{n}', lines.length - 12), 26, { color: '#5A6A6E' });
+    y += 30;
+
+    // QR
+    if (url) {
+      var qr = qrMatrix(url), n = qr.getModuleCount(), quiet = 4;
+      var px = Math.max(3, Math.floor(520 / (n + quiet * 2))), size = px * (n + quiet * 2);
+      var left = Math.round((W - size) / 2);
+      x.fillStyle = '#FFFFFF'; x.fillRect(left, y, size, size);
+      x.fillStyle = '#0F2A2E';
+      for (var r = 0; r < n; r++) for (var cc = 0; cc < n; cc++) if (qr.isDark(r, cc)) x.fillRect(left + (cc + quiet) * px, y + (r + quiet) * px, px, px);
+      x.strokeStyle = '#D3DCDA'; x.lineWidth = 2; x.strokeRect(left, y, size, size);
+      y += size + 20;
+      text(pp('scan', lang), 28, { weight: '600', after: 4 });
+      if (lang !== 'en') text(pp('scan', 'en'), 24, { color: '#5A6A6E' });
+      y += 20;
+    }
+    text(u('foot', lang), 22, { color: '#5A6A6E' });
+    if (lang !== 'en') text(UI.foot[1], 22, { color: '#5A6A6E' });
+    y += PAD - 20;
+
+    var out = document.createElement('canvas');
+    out.width = W; out.height = y;
+    out.getContext('2d').drawImage(c, 0, 0);
+    return out;
+  }
+
+  /* ---------- 저장 ---------- */
+  var KEY = 'noksan-chart-v1';
+  var canSave = true, savedAt = null;
+  var db = null;
+
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  function samples() {
+    return [
+      { id: uid(), sample: true, chartNo: 'N-0012', name: '아지즈 카리모프', nameAlt: 'Aziz Karimov', birthYear: '1979', sex: '남', nationality: '우즈베키스탄', lang: 'ru',
+        alerts: ['penicillin', 'antiplatelet', 'htn'], noneConfirmed: false, alertNote: '아스피린 100mg 매일 복용(본인 진술)', memo: '',
+        visits: [
+          { id: uid(), date: '2026-09-06', provider: '치과의사 A (가상)', recorder: '봉사자 B (가상)', complaint: '왼쪽 아래 어금니가 밤에 아픔',
+            items: [{ code: 'xray', teeth: [36], note: '' }, { code: 'temp', teeth: [36], note: '깊은 우식, 치수 노출 의심' }, { code: 'rx', teeth: [], note: '진통제 3일분' }],
+            comment: '#36 깊은 우식. 임시 충전하고 진통제 처방.', nextPlan: '#36 신경치료 시작 여부 판단. 아스피린 복용 중이라 출혈 주의.' },
+          { id: uid(), date: '2026-10-04', provider: '치과의사 C (가상)', recorder: '봉사자 B (가상)', complaint: '지난번 치료한 이 확인',
+            items: [{ code: 'endo', teeth: [36], note: '근관 형성 1회차, 수산화칼슘 넣음' }],
+            comment: '통증 많이 줄었다고 함.', nextPlan: '#36 근관 충전 (2~3회차 예상). 이후 크라운 필요 여부 상담.' }
+        ] },
+      { id: uid(), sample: true, chartNo: 'N-0031', name: '천위', nameAlt: '陈雨 / Chen Yu', birthYear: '1994', sex: '여', nationality: '중국', lang: 'zh',
+        alerts: [], noneConfirmed: true, alertNote: '', memo: '',
+        visits: [
+          { id: uid(), date: '2026-10-04', provider: '치과의사 A (가상)', recorder: '봉사자 D (가상)', complaint: '정기 검진, 오른쪽 위가 가끔 시림',
+            items: [{ code: 'exam', teeth: [], note: '' }, { code: 'scaling', teeth: [], note: '' }, { code: 'resin', teeth: [16], note: '교합면 작은 우식' }, { code: 'edu', teeth: [], note: '치간칫솔 안내' }],
+            comment: '전반적으로 양호.', nextPlan: '6개월 뒤 검진. #26도 초기 우식 의심, 다음에 확인.' }
+        ] },
+      { id: uid(), sample: true, chartNo: 'N-0047', name: '올가 이바노바', nameAlt: 'Ольга Иванова / Olga Ivanova', birthYear: '1961', sex: '여', nationality: '러시아', lang: 'ru',
+        alerts: ['anticoag', 'heart'], noneConfirmed: false, alertNote: '와파린 복용, 발치 전 INR 확인 필요', memo: '하악 부분 틀니 사용',
+        visits: [
+          { id: uid(), date: '2026-08-02', provider: '치과의사 C (가상)', recorder: '봉사자 B (가상)', complaint: '아래 틀니가 잇몸을 누름',
+            items: [{ code: 'denture', teeth: [], note: '하악 부분 틀니 내면 조정' }],
+            comment: '궤양 작게 있음. 조정 후 편해졌다고 함.', nextPlan: '#44 흔들림 심함. 발치 고려, 와파린 복용 중이라 INR 먼저 확인.' },
+          { id: uid(), date: '2026-09-06', provider: '치과의사 A (가상)', recorder: '봉사자 D (가상)', complaint: '흔들리는 이 빼기',
+            items: [{ code: 'extraction', teeth: [44], note: 'INR 2.3 확인(본인 지참 결과지). 지혈제 사용' }],
+            comment: '지혈 양호. 귀가 후 출혈 시 연락 안내.', nextPlan: '#44 발치 부위 치유 확인. 하악 틀니에 #44 추가 필요.' }
+        ] }
+    ];
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d && Array.isArray(d.patients)) return d;
+      }
+    } catch (e) { canSave = false; }
+    return null;
+  }
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(db));
+      canSave = true; savedAt = new Date();
+    } catch (e) { canSave = false; }
+    renderStatus();
+  }
+
+  db = load();
+  if (!db) { db = { version: 1, patients: samples() }; save(); }
+
+  /* ---------- 화면 상태 ---------- */
+  var st = { sel: null, view: 'home', q: '', draft: null, toothFocus: null, exLang: null, exVisit: null, confirm: null, flash: null, teethSel: [], itemCode: 'exam', itemNote: '' };
+
+  function patient(id) { for (var i = 0; i < db.patients.length; i++) if (db.patients[i].id === id) return db.patients[i]; return null; }
+  function sortedVisits(p) { return p.visits.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }); }
+  function lastVisit(p) { var v = sortedVisits(p); return v.length ? v[0] : null; }
+  function hasRisk(p) { return p.alerts.some(function (c) { return AL[c] && AL[c].risk; }); }
+  function teethLabel(t) { return t && t.length ? t.map(function (n) { return '#' + n; }).join(' ') : '입 전체'; }
+  function trName(code, lang) { var t = TR[code]; return t ? t.names[LANG_IDX[lang] || 0] : code; }
+
+  function renderStatus() {
+    var el = $('status');
+    if (!canSave) { el.textContent = '저장 안 됨: 이 브라우저가 저장을 막고 있습니다. 백업 파일로 저장하세요.'; el.className = 'status bad'; return; }
+    el.className = 'status';
+    el.textContent = savedAt ? '자동 저장됨 ' + pad(savedAt.getHours()) + ':' + pad(savedAt.getMinutes()) : '';
+  }
+
+  function renderList() {
+    var q = st.q.trim().toLowerCase();
+    var list = db.patients.filter(function (p) {
+      if (!q) return true;
+      return [p.chartNo, p.name, p.nameAlt, p.nationality].join(' ').toLowerCase().indexOf(q) >= 0;
+    }).sort(function (a, b) {
+      var la = lastVisit(a), lb = lastVisit(b);
+      var da = la ? la.date : '', dbb = lb ? lb.date : '';
+      if (da !== dbb) return da < dbb ? 1 : -1;
+      return a.chartNo < b.chartNo ? -1 : 1;
+    });
+    var html = list.map(function (p) {
+      var lv = lastVisit(p);
+      return '<li><button data-act="open" data-id="' + p.id + '" aria-current="' + (st.sel === p.id) + '">' +
+        '<span class="pl-top"><span class="mono">' + esc(p.chartNo) + '</span><span class="pl-name">' + esc(p.name) + '</span>' +
+        (hasRisk(p) ? '<span class="chip danger">주의</span>' : '') + (p.sample ? '<span class="chip plain">가상</span>' : '') + '</span>' +
+        '<span class="small muted">' + esc(p.nationality || '국적 미기재') + ' · ' + (lv ? '최근 ' + lv.date : '진료 기록 없음') + ' · ' + p.visits.length + '회</span>' +
+        '</button></li>';
+    }).join('');
+    $('plist').innerHTML = html || '<li class="empty-list">' + (q ? '"' + esc(st.q) + '"에 맞는 환자가 없습니다. 새 환자로 등록하세요.' : '등록된 환자가 없습니다.') + '</li>';
+  }
+
+  function teethGrid(selected, has, focus) {
+    var rows = [[18, 17, 16, 15, 14, 13, 12, 11, 0, 21, 22, 23, 24, 25, 26, 27, 28], [48, 47, 46, 45, 44, 43, 42, 41, 0, 31, 32, 33, 34, 35, 36, 37, 38]];
+    var html = '<div class="teeth" role="group" aria-label="치아 선택 (FDI 번호)">';
+    rows.forEach(function (r) {
+      html += '<div class="trow">';
+      r.forEach(function (n) {
+        if (!n) { html += '<span class="mid" aria-hidden="true"></span>'; return; }
+        var cls = 'tooth' + (selected.indexOf(n) >= 0 ? ' sel' : '') + (has && has[n] ? ' has' : '') + (focus === n ? ' focus' : '');
+        html += '<button type="button" class="' + cls + '" data-act="tooth" data-n="' + n + '" title="#' + n + ' ' + toothName(n, 'ko') + '">' + n + '</button>';
+      });
+      html += '</div>';
+    });
+    return html + '<div class="orient"><span>← 환자의 오른쪽</span><span>환자의 왼쪽 →</span></div></div>';
+  }
+
+  function flashHtml() {
+    var h = '';
+    if (st.confirm) {
+      h += '<div class="confirm" role="alert"><span>' + esc(st.confirm.text) + '</span>' +
+        '<button class="btn sm danger" data-act="confirm-yes">' + esc(st.confirm.yes) + '</button>' +
+        '<button class="btn sm" data-act="confirm-no">취소</button></div>';
+    }
+    if (st.flash) h += '<div class="flash' + (st.flash.bad ? ' bad' : '') + '" role="status">' + esc(st.flash.text) + '</div>';
+    return h;
+  }
+
+  function alertBlock(p) {
+    var cls = p.alerts.length ? 'has' : p.noneConfirmed ? 'none' : 'unknown';
+    var h = '<div class="alerts ' + cls + '"><span class="label">주의사항 (알레르기·복용약·지병)</span>';
+    if (p.alerts.length) {
+      h += '<div class="chips">' + p.alerts.map(function (c) {
+        var a = AL[c]; if (!a) return '';
+        return '<span class="chip ' + (a.risk ? 'danger' : 'plain') + '">' + esc(ALERTS[a.group].label + ' · ' + a.names[0]) + '</span>';
+      }).join('') + '</div>';
+    } else if (p.noneConfirmed) {
+      h += '<span>없음 (확인함)</span>';
+    } else {
+      h += '<span>아직 확인하지 않았습니다. 진료 전에 물어보고 <button class="linkbtn" data-act="edit-patient">정보 수정</button>에서 기록하세요.</span>';
+    }
+    if (p.alertNote) h += '<span>' + esc(p.alertNote) + '</span>';
+    return h + '</div>';
+  }
+
+  function viewHome() {
+    var n = db.patients.length, v = 0;
+    db.patients.forEach(function (p) { v += p.visits.length; });
+    return flashHtml() + '<section class="card"><h2>녹산 의료봉사 진료 기록 시제품</h2>' +
+      '<p class="muted">환자 ' + n + '명 · 진료 기록 ' + v + '건이 이 기기에 저장되어 있습니다.</p>' +
+      '<ol class="guide">' +
+      '<li>왼쪽에서 차트 번호(덴트웹 일련번호)나 이름으로 환자를 찾습니다. 처음 온 환자는 <b>새 환자 등록</b>을 누릅니다.</li>' +
+      '<li>환자를 열면 주의사항과 <b>지난 진료에서 남긴 말</b>이 맨 위에 나옵니다. 오늘 진료자는 여기부터 봅니다.</li>' +
+      '<li>진료가 끝나면 <b>진료 기록 추가</b>에서 치아를 누르고 치료를 골라 항목을 넣고, 다음 진료자에게 남길 말을 적습니다.</li>' +
+      '<li><b>환자용 설명</b>은 받은 치료를 환자 언어(중국어·영어·러시아어·한국어)로 보여 줍니다. 인쇄할 수 있습니다.</li>' +
+      '<li>하루가 끝나면 <b>백업 파일 저장</b>을 누릅니다. 기록은 이 기기의 브라우저에만 있습니다.</li>' +
+      '</ol>' +
+      '<p class="small muted">시제품입니다. 실제 환자 기록의 보관 위치와 동의 범위가 정해지기 전까지는 가상 환자로만 시연합니다.</p></section>';
+  }
+
+  function viewPatient(p) {
+    var lv = lastVisit(p), visits = sortedVisits(p);
+    var has = {};
+    visits.forEach(function (v) { v.items.forEach(function (it) { it.teeth.forEach(function (n) { has[n] = true; }); }); });
+    var h = flashHtml();
+    h += '<section class="phead"><div class="who">' +
+      '<span class="mono muted">' + esc(p.chartNo) + (p.sample ? ' · <span class="chip plain">가상 환자</span>' : '') + '</span>' +
+      '<h2>' + esc(p.name) + (p.nameAlt ? ' <span class="muted" style="font-weight:500;font-size:16px">' + esc(p.nameAlt) + '</span>' : '') + '</h2>' +
+      '<span class="muted">' + [p.birthYear ? p.birthYear + '년생' : '', p.sex, p.nationality, p.lang ? LANG_NAME[p.lang] + ' 사용' : ''].filter(Boolean).map(esc).join(' · ') + '</span></div>' +
+      '<div class="actions"><button class="btn primary" data-act="new-visit">진료 기록 추가</button>' +
+      '<button class="btn" data-act="passport">의료 여권</button><button class="btn" data-act="explain">환자용 설명</button><button class="btn" data-act="edit-patient">정보 수정</button></div></section>';
+    h += alertBlock(p);
+    if (lv && (lv.nextPlan || lv.comment)) {
+      h += '<section class="handoff"><span class="small muted">지난 진료에서 남긴 말 · <span class="mono">' + esc(lv.date) + '</span> · ' + esc(lv.provider || '진료자 미기재') + '</span>' +
+        '<p style="white-space:pre-wrap;font-weight:600">' + esc(lv.nextPlan || lv.comment) + '</p></section>';
+    }
+    if (p.memo) h += '<p class="muted">메모: ' + esc(p.memo) + '</p>';
+
+    var focusList = '';
+    if (st.toothFocus) {
+      var rows = [];
+      visits.forEach(function (v) { v.items.forEach(function (it) { if (it.teeth.indexOf(st.toothFocus) >= 0) rows.push('<li><span class="mono">' + esc(v.date) + '</span> ' + esc(trName(it.code, 'ko')) + (it.note ? ' · ' + esc(it.note) : '') + '</li>'); }); });
+      focusList = '<h3>#' + st.toothFocus + ' ' + esc(toothName(st.toothFocus, 'ko')) + '</h3>' + (rows.length ? '<ul class="guide">' + rows.join('') + '</ul>' : '<p class="muted">이 치아의 기록이 없습니다.</p>');
+    } else {
+      focusList = '<p class="muted">색이 칠해진 치아는 기록이 있는 치아입니다. 치아를 누르면 그 치아의 이력만 보입니다.</p>';
+    }
+    h += '<section class="card"><div class="two"><div style="min-width:0">' + teethGrid([], has, st.toothFocus) + '</div><div>' + focusList + '</div></div></section>';
+
+    h += '<section class="visits"><h3>진료 이력 (' + visits.length + '회)</h3>';
+    if (!visits.length) h += '<p class="muted">아직 진료 기록이 없습니다. 진료가 끝나면 <b>진료 기록 추가</b>를 누르세요.</p>';
+    visits.forEach(function (v) {
+      h += '<article class="card visit"><div class="visit-head"><span class="vdate">' + esc(v.date) + '</span>' +
+        '<span class="small muted">' + esc(v.provider || '진료자 미기재') + (v.recorder ? ' · 기록 ' + esc(v.recorder) : '') + '</span></div>' +
+        '<dl class="kv">' +
+        (v.complaint ? '<dt>온 이유</dt><dd>' + esc(v.complaint) + '</dd>' : '') +
+        '<dt>치료</dt><dd><div class="chips">' + (v.items.length ? v.items.map(function (it) {
+          return '<span class="chip" title="' + esc(it.note) + '">' + esc(teethLabel(it.teeth) + ' ' + trName(it.code, 'ko')) + '</span>';
+        }).join('') : '<span class="muted">없음</span>') + '</div>' +
+        v.items.filter(function (it) { return it.note; }).map(function (it) { return '<div class="small muted">' + esc(teethLabel(it.teeth) + ' ' + trName(it.code, 'ko') + ': ' + it.note) + '</div>'; }).join('') + '</dd>' +
+        (v.comment ? '<dt>코멘트</dt><dd>' + esc(v.comment) + '</dd>' : '') +
+        (v.nextPlan ? '<dt>다음 진료자에게</dt><dd><b>' + esc(v.nextPlan) + '</b></dd>' : '') +
+        '</dl><div class="actions"><button class="btn sm" data-act="edit-visit" data-id="' + v.id + '">수정</button>' +
+        '<button class="btn sm danger" data-act="ask-del-visit" data-id="' + v.id + '">삭제</button></div></article>';
+    });
+    h += '</section><p><button class="btn sm danger" data-act="ask-del-patient">이 환자 삭제</button></p>';
+    return h;
+  }
+
+  function field(label, f, val, opts) {
+    opts = opts || {};
+    var id = 'f-' + f;
+    var lab = '<label for="' + id + '">' + esc(label) + (opts.req ? ' <span class="req">*</span>' : '') + '</label>';
+    if (opts.textarea) return '<div class="field">' + lab + '<textarea id="' + id + '" data-f="' + f + '" placeholder="' + esc(opts.ph || '') + '">' + esc(val) + '</textarea></div>';
+    if (opts.select) {
+      return '<div class="field">' + lab + '<select id="' + id + '" data-f="' + f + '">' + opts.select.map(function (o) {
+        return '<option value="' + esc(o[0]) + '"' + (o[0] === val ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+      }).join('') + '</select></div>';
+    }
+    return '<div class="field">' + lab + '<input id="' + id + '" data-f="' + f + '" type="' + (opts.type || 'text') + '" value="' + esc(val) + '" placeholder="' + esc(opts.ph || '') + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + '></div>';
+  }
+
+  function viewPatientForm() {
+    var d = st.draft;
+    var h = flashHtml() + '<section class="card form"><h2>' + (d.id ? '환자 정보 수정' : '새 환자 등록') + '</h2>' +
+      '<div class="row">' + field('차트 번호 (덴트웹 일련번호)', 'chartNo', d.chartNo, { req: 1, ph: '예: N-0052' }) +
+      field('이름 (한글 표기)', 'name', d.name, { req: 1 }) + field('본국 표기·영문 이름', 'nameAlt', d.nameAlt) + '</div>' +
+      '<div class="row">' + field('출생 연도', 'birthYear', d.birthYear, { mode: 'numeric', ph: '예: 1985' }) +
+      field('성별', 'sex', d.sex, { select: [['', '미기재'], ['남', '남'], ['여', '여']] }) +
+      field('국적', 'nationality', d.nationality, { ph: '예: 우즈베키스탄' }) +
+      field('설명 들을 언어', 'lang', d.lang, { select: [['ru', 'Русский (러시아어)'], ['zh', '中文 (중국어)'], ['en', 'English (영어)'], ['ko', '한국어']] }) + '</div>';
+    h += '<div class="field"><span class="lbl">주의사항 · 해당하는 것을 모두 누르세요</span>';
+    Object.keys(ALERTS).forEach(function (g) {
+      h += '<div class="chips" style="align-items:center"><span class="small muted" style="width:60px">' + ALERTS[g].label + '</span>' +
+        ALERTS[g].items.map(function (a) {
+          return '<button type="button" class="toggle' + (a[5] ? ' risk' : '') + '" data-act="alert" data-code="' + a[0] + '" aria-pressed="' + (d.alerts.indexOf(a[0]) >= 0) + '">' + esc(a[1]) + '</button>';
+        }).join('') + '</div>';
+    });
+    h += '<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-f="noneConfirmed"' + (d.noneConfirmed ? ' checked' : '') + (d.alerts.length ? ' disabled' : '') + '> 물어봤고 해당 없음</label></div>';
+    h += field('주의사항 추가 설명', 'alertNote', d.alertNote, { ph: '예: 와파린 복용, 발치 전 INR 확인' }) +
+      field('메모', 'memo', d.memo, { textarea: 1, ph: '예: 하악 부분 틀니 사용, 통역 필요' });
+    h += '<div class="actions"><button class="btn primary" data-act="save-patient">저장</button><button class="btn" data-act="cancel">취소</button></div></section>';
+    return h;
+  }
+
+  function viewVisitForm(p) {
+    var d = st.draft;
+    var h = flashHtml() + '<section class="card form"><h2>' + (d.id ? '진료 기록 수정' : '진료 기록 추가') + ' · ' + esc(p.chartNo + ' ' + p.name) + '</h2>' + alertBlock(p) +
+      '<div class="row">' + field('진료일', 'date', d.date, { type: 'date', req: 1 }) + field('진료 의료진', 'provider', d.provider, { ph: '예: 치과의사 김OO' }) +
+      field('기록 봉사자', 'recorder', d.recorder) + '</div>' +
+      field('오늘 온 이유', 'complaint', d.complaint, { ph: '예: 왼쪽 아래 어금니 통증' });
+    h += '<div class="field"><span class="lbl">치료 항목</span><div class="items">' + (d.items.length ? d.items.map(function (it, i) {
+      return '<div class="item"><span class="chip">' + esc(teethLabel(it.teeth)) + '</span><b>' + esc(trName(it.code, 'ko')) + '</b>' +
+        '<span class="grow small muted">' + esc(it.note) + '</span><button type="button" class="btn sm danger" data-act="del-item" data-i="' + i + '">빼기</button></div>';
+    }).join('') : '<p class="small muted">아직 넣은 항목이 없습니다. 아래에서 치아와 치료를 고르고 항목 넣기를 누르세요.</p>') + '</div></div>';
+    h += '<div class="adder no-print"><span class="small"><b>1.</b> 치아를 누르세요. 입 전체 치료(검진·스케일링 등)는 치아를 고르지 않습니다.</span>' +
+      teethGrid(st.teethSel, null, null) +
+      '<span class="small"><b>2.</b> 치료를 고르세요.</span><div class="chips">' + TREAT.map(function (t) {
+        return '<button type="button" class="toggle" data-act="pick-treat" data-code="' + t[0] + '" aria-pressed="' + (st.itemCode === t[0]) + '">' + esc(t[1]) + '</button>';
+      }).join('') + '</div>' +
+      '<div class="field"><label for="itemNote">세부 내용 (선택)</label><input id="itemNote" value="' + esc(st.itemNote) + '" placeholder="예: 근관 형성 1회차, MO 레진"></div>' +
+      '<div><button type="button" class="btn" data-act="add-item">항목 넣기: ' + esc(teethLabel(st.teethSel) + ' ' + trName(st.itemCode, 'ko')) + '</button></div></div>';
+    h += field('진료 코멘트', 'comment', d.comment, { textarea: 1 }) +
+      field('다음 진료자에게 남길 말', 'nextPlan', d.nextPlan, { textarea: 1, ph: '예: #36 근관 충전 예정. 아스피린 복용 중, 출혈 주의' });
+    h += '<div class="actions"><button class="btn primary" data-act="save-visit">저장</button><button class="btn" data-act="cancel">취소</button></div></section>';
+    return h;
+  }
+
+  function viewExplain(p) {
+    var lang = st.exLang || p.lang || 'en';
+    var li = LANG_IDX[lang] || 0;
+    var visits = sortedVisits(p);
+    var v = null;
+    visits.forEach(function (x) { if (x.id === st.exVisit) v = x; });
+    if (!v) v = visits[0];
+    var h = flashHtml() + '<section class="card no-print"><div class="row">' +
+      '<div class="field"><label for="exLang">설명 언어</label><select id="exLang" data-act="ex-lang">' + ['ru', 'zh', 'en', 'ko'].map(function (l) {
+        return '<option value="' + l + '"' + (l === lang ? ' selected' : '') + '>' + LANG_NAME[l] + '</option>';
+      }).join('') + '</select></div>' +
+      '<div class="field"><label for="exVisit">진료일</label><select id="exVisit" data-act="ex-visit">' + visits.map(function (x) {
+        return '<option value="' + x.id + '"' + (v && x.id === v.id ? ' selected' : '') + '>' + esc(x.date) + '</option>';
+      }).join('') + '</select></div></div>' +
+      '<p class="small muted">환자에게 화면을 보여 주거나 인쇄합니다. 치료 이름과 설명은 고정 문장이라 번역되고, 진료진이 적은 글은 원문 그대로 나옵니다. 번역은 아직 의료인 검수 전입니다.</p>' +
+      '<div class="actions"><button class="btn primary" data-act="print">인쇄</button><button class="btn" data-act="back">환자 화면으로</button></div></section>';
+    if (!v) return h + '<p class="muted">진료 기록이 없어 설명할 내용이 없습니다.</p>';
+
+    var alertsHtml;
+    if (p.alerts.length) alertsHtml = '<div class="ex-box">' + p.alerts.map(function (c) { return AL[c] ? esc(AL[c].names[li]) : ''; }).join(' · ') + '</div>';
+    else alertsHtml = '<div class="ex-raw">' + esc(p.noneConfirmed ? UI.none[li] : UI.unknown[li]) + '</div>';
+
+    h += '<article class="explain" lang="' + lang + '"><div><p class="muted">' + esc(u('title', lang)) + '</p>' +
+      '<h2>' + esc(p.nameAlt || p.name) + '</h2>' +
+      '<p class="muted">' + esc(u('date', lang)) + ' <span class="mono">' + esc(v.date) + '</span></p></div>' +
+      '<div><h3>' + esc(u('done', lang)) + '</h3>' + v.items.map(function (it) {
+        var t = TR[it.code] || TR.other;
+        var where = it.teeth.length ? it.teeth.map(function (n) { return '#' + n + ' ' + toothName(n, lang); }).join(', ') : u('whole', lang);
+        return '<div class="ex-item"><b>' + esc(t.names[li]) + '</b><span>' + esc(where) + '</span>' +
+          (t.ex[li] ? '<span>' + esc(t.ex[li]) + '</span>' : '') +
+          (lang !== 'ko' ? '<span class="ko">' + esc(t.names[0] + ' · ' + teethLabel(it.teeth)) + '</span>' : '') + '</div>';
+      }).join('') + '</div>' +
+      '<div style="display:grid;gap:6px"><h3>' + esc(u('caution', lang)) + '</h3>' + alertsHtml + '</div>' +
+      (v.nextPlan ? '<div style="display:grid;gap:6px"><h3>' + esc(u('next', lang)) + '</h3><p class="small muted">' + esc(u('raw', lang)) + '</p><div class="ex-raw" lang="ko">' + esc(v.nextPlan) + '</div></div>' : '') +
+      '<p class="ex-foot">' + esc(u('foot', lang)) + '</p></article>';
+    return h;
+  }
+
+  function viewPassport(p) {
+    var lang = st.ppLang || p.lang || 'en';
+    var h = flashHtml() + '<section class="card"><h2>의료 여권 · ' + esc(p.chartNo + ' ' + p.name) + '</h2>' +
+      '<p>환자가 가져가는 카드입니다. 카드에는 주의사항과 치료 기록이 환자 언어와 영어로 들어가고, QR에는 전체 기록이 들어갑니다. 다른 병원 의사가 QR을 찍으면 영어(한국어 전환 가능) 화면이 열립니다.</p>' +
+      '<ol class="guide"><li>환자 폰으로 아래 카드 이미지를 찍게 하거나, <b>카드 이미지 저장</b>으로 파일을 만들어 메신저로 보냅니다.</li>' +
+      '<li>환자가 자기 폰 카메라로 카드의 QR을 찍어 열어 두면, 인터넷이 될 때 전체 기록을 다시 볼 수 있습니다.</li></ol>' +
+      '<div class="row"><div class="field"><label for="ppLang">카드 언어</label><select id="ppLang">' + ['ru', 'zh', 'en', 'ko'].map(function (l) {
+        return '<option value="' + l + '"' + (l === lang ? ' selected' : '') + '>' + LANG_NAME[l] + '</option>';
+      }).join('') + '</select></div></div>' +
+      '<div class="actions"><button class="btn primary" data-act="pp-save" disabled>카드 이미지 저장</button>' +
+      '<button class="btn" data-act="pp-copy" disabled>QR 링크 복사</button>' +
+      '<a class="btn" id="ppOpen" href="#" target="_blank" rel="noopener" aria-disabled="true">QR 화면 열어 보기</a>' +
+      '<button class="btn" data-act="back">환자 화면으로</button></div>' +
+      '<input id="ppLink" class="small" readonly aria-label="QR 링크" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">' +
+      '<p id="ppNote" class="small muted"></p>' +
+      '<p class="small muted">기록은 링크 # 뒤에만 들어 있고 서버에 저장되지 않습니다. QR 화면은 공개 데모 사이트에서 열리므로 인터넷이 필요합니다. 실제 환자 기록 처리 방식이 정해지기 전까지 가상 환자로만 쓰세요. 번역은 의료인 검수 전입니다.</p></section>' +
+      '<div id="ppOut" class="muted">카드를 만드는 중…</div>';
+    return h;
+  }
+
+  var ppToken = 0;
+  function fillPassport(p) {
+    var token = ++ppToken, lang = st.ppLang || p.lang || 'en';
+    buildPassportLink(p).then(function (res) {
+      if (token !== ppToken || st.view !== 'passport') return;
+      var canvas = drawPassportCard(p, lang, res.url);
+      st.ppCanvas = canvas; st.ppUrl = res.url;
+      var out = $('ppOut');
+      out.innerHTML = '<img alt="의료 여권 카드" style="width:100%;max-width:540px;border:1px solid var(--line);border-radius:8px;background:#fff">';
+      out.firstChild.src = canvas.toDataURL('image/png');
+      $('ppLink').value = res.url;
+      var a = $('ppOpen'); a.href = res.url; a.removeAttribute('aria-disabled');
+      document.querySelectorAll('[data-act="pp-save"],[data-act="pp-copy"]').forEach(function (b) { b.disabled = false; });
+      $('ppNote').textContent = 'QR 링크 ' + res.url.length + '자' + (res.dropped ? ' · 길이 때문에 오래된 치료 ' + res.dropped + '줄은 QR에서 뺐습니다' : '');
+    }).catch(function (e) {
+      if (token !== ppToken) return;
+      $('ppOut').innerHTML = '<div class="flash bad">카드를 만들지 못했습니다: ' + esc(e.message) + '</div>';
+    });
+  }
+
+  function savePassportImage() {
+    var p = patient(st.sel);
+    if (!st.ppCanvas || !p) return;
+    st.ppCanvas.toBlob(function (blob) {
+      if (!blob) { flash('이미지를 만들지 못했습니다. 화면의 카드를 캡처하세요.', true); render(); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'K-CARE-LINK-' + (p.chartNo || 'passport') + '.png';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }, 'image/png');
+  }
+
+  function copyPassportLink() {
+    var input = $('ppLink');
+    function fallback() { input.focus(); input.select(); $('ppNote').textContent = '링크를 선택했습니다. Ctrl+C(맥은 ⌘+C)로 복사하세요.'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(st.ppUrl).then(function () { $('ppNote').textContent = 'QR 링크를 복사했습니다.'; }, fallback);
+    } else fallback();
+  }
+
+  function render() {
+    renderList();
+    renderStatus();
+    var p = st.sel ? patient(st.sel) : null;
+    if ((st.view === 'patient' || st.view === 'visitForm' || st.view === 'explain' || st.view === 'passport') && !p) st.view = 'home';
+    var html;
+    if (st.view === 'patient') html = viewPatient(p);
+    else if (st.view === 'patientForm') html = viewPatientForm();
+    else if (st.view === 'visitForm') html = viewVisitForm(p);
+    else if (st.view === 'explain') html = viewExplain(p);
+    else if (st.view === 'passport') html = viewPassport(p);
+    else html = viewHome();
+    main.innerHTML = html;
+    if (st.view === 'passport') fillPassport(p);
+  }
+
+  function go(view, keepFlash) {
+    st.view = view; st.confirm = null;
+    if (!keepFlash) st.flash = null;
+    render();
+    main.scrollTop = 0; window.scrollTo(0, 0);
+  }
+  function flash(text, bad) { st.flash = { text: text, bad: !!bad }; }
+
+  /* ---------- 동작 ---------- */
+  function startPatientForm(p) {
+    st.draft = p ? clone(p) : { chartNo: '', name: st.q.trim(), nameAlt: '', birthYear: '', sex: '', nationality: '', lang: 'ru', alerts: [], noneConfirmed: false, alertNote: '', memo: '', visits: [] };
+    if (!p) st.sel = null;
+    go('patientForm');
+  }
+  function startVisitForm(v) {
+    st.draft = v ? clone(v) : { date: today(), provider: '', recorder: '', complaint: '', items: [], comment: '', nextPlan: '' };
+    st.teethSel = []; st.itemCode = 'exam'; st.itemNote = '';
+    go('visitForm');
+  }
+
+  function savePatient() {
+    var d = st.draft;
+    d.chartNo = (d.chartNo || '').trim(); d.name = (d.name || '').trim();
+    if (!d.chartNo || !d.name) { flash('차트 번호와 이름은 꼭 적어야 합니다.', true); render(); return; }
+    var dup = db.patients.filter(function (x) { return x.chartNo === d.chartNo && x.id !== d.id; })[0];
+    if (dup) { flash('차트 번호 ' + d.chartNo + '는 이미 ' + dup.name + ' 환자에게 쓰였습니다. 번호를 확인하세요.', true); render(); return; }
+    if (d.alerts.length) d.noneConfirmed = false;
+    if (d.id) {
+      var i = db.patients.indexOf(patient(d.id));
+      d.visits = db.patients[i].visits;
+      db.patients[i] = d;
+    } else {
+      d.id = uid(); d.createdAt = new Date().toISOString();
+      db.patients.push(d);
+    }
+    save();
+    st.sel = d.id; st.draft = null; st.toothFocus = null;
+    flash('저장했습니다.');
+    go('patient', true);
+  }
+
+  function saveVisit() {
+    var p = patient(st.sel), d = st.draft;
+    if (!d.date) { flash('진료일을 넣어 주세요.', true); render(); return; }
+    if (!d.items.length && !d.comment && !d.nextPlan) { flash('치료 항목, 코멘트, 다음 진료자에게 남길 말 중 하나는 있어야 합니다.', true); render(); return; }
+    if (d.id) {
+      for (var i = 0; i < p.visits.length; i++) if (p.visits[i].id === d.id) p.visits[i] = d;
+    } else {
+      d.id = uid(); d.createdAt = new Date().toISOString();
+      p.visits.push(d);
+    }
+    save();
+    st.draft = null;
+    flash('진료 기록을 저장했습니다.');
+    go('patient', true);
+  }
+
+  function exportData() {
+    try {
+      var blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'noksan-backup-' + today() + '.json';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      flash('백업 파일을 저장했습니다. 다운로드 폴더를 확인하세요.');
+    } catch (e) { flash('백업 파일을 만들지 못했습니다: ' + e.message, true); }
+    render();
+  }
+
+  var pendingImport = null;
+  $('importFile').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var d = JSON.parse(r.result);
+        if (!d || !Array.isArray(d.patients)) throw new Error('환자 목록이 없습니다');
+        d.patients.forEach(function (p) { if (!p.id || !p.chartNo || !Array.isArray(p.visits) || !Array.isArray(p.alerts)) throw new Error('형식이 맞지 않는 환자가 있습니다'); });
+        pendingImport = d;
+        st.confirm = { text: '백업 파일의 환자 ' + d.patients.length + '명으로 지금 기록(' + db.patients.length + '명)을 바꿉니다. 지금 기록은 사라집니다.', yes: '바꾸기', act: 'import' };
+      } catch (err) { flash('불러오지 못했습니다. 이 프로그램에서 저장한 백업 파일인지 확인하세요. (' + err.message + ')', true); }
+      render();
+    };
+    r.readAsText(file);
+  });
+
+  function doConfirm() {
+    var c = st.confirm; st.confirm = null;
+    if (!c) return;
+    if (c.act === 'wipe') { db = { version: 1, patients: [] }; save(); st.sel = null; flash('모든 기록을 지웠습니다.'); go('home', true); return; }
+    if (c.act === 'import') { db = pendingImport; pendingImport = null; save(); st.sel = null; flash('백업 파일을 불러왔습니다.'); go('home', true); return; }
+    if (c.act === 'del-patient') {
+      db.patients = db.patients.filter(function (x) { return x.id !== st.sel; });
+      save(); st.sel = null; flash('환자를 삭제했습니다.'); go('home', true); return;
+    }
+    if (c.act === 'del-visit') {
+      var p = patient(st.sel);
+      p.visits = p.visits.filter(function (v) { return v.id !== c.id; });
+      save(); flash('진료 기록을 삭제했습니다.'); render(); return;
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!t || t.tagName === 'SELECT') return;
+    var act = t.getAttribute('data-act');
+    var p = st.sel ? patient(st.sel) : null;
+    switch (act) {
+      case 'open': st.sel = t.getAttribute('data-id'); st.toothFocus = null; go('patient'); break;
+      case 'new-patient': startPatientForm(null); break;
+      case 'edit-patient': startPatientForm(p); break;
+      case 'new-visit': startVisitForm(null); break;
+      case 'edit-visit': p.visits.forEach(function (v) { if (v.id === t.getAttribute('data-id')) startVisitForm(v); }); break;
+      case 'cancel': case 'back': st.draft = null; go(st.sel ? 'patient' : 'home'); break;
+      case 'save-patient': savePatient(); break;
+      case 'save-visit': saveVisit(); break;
+      case 'explain': st.exLang = p.lang || 'en'; st.exVisit = null; go('explain'); break;
+      case 'print': window.print(); break;
+      case 'passport': st.ppLang = p.lang || 'en'; st.ppCanvas = null; st.ppUrl = ''; go('passport'); break;
+      case 'pp-save': savePassportImage(); break;
+      case 'pp-copy': copyPassportLink(); break;
+      case 'alert': {
+        var code = t.getAttribute('data-code'), a = st.draft.alerts, i = a.indexOf(code);
+        if (i >= 0) a.splice(i, 1); else a.push(code);
+        render(); break;
+      }
+      case 'tooth': {
+        var n = +t.getAttribute('data-n');
+        if (st.view === 'visitForm') {
+          var k = st.teethSel.indexOf(n);
+          if (k >= 0) st.teethSel.splice(k, 1); else st.teethSel.push(n);
+        } else {
+          st.toothFocus = st.toothFocus === n ? null : n;
+        }
+        render(); break;
+      }
+      case 'pick-treat': st.itemCode = t.getAttribute('data-code'); render(); break;
+      case 'add-item':
+        st.draft.items.push({ code: st.itemCode, teeth: st.teethSel.slice().sort(function (a, b) { return a - b; }), note: st.itemNote.trim() });
+        st.teethSel = []; st.itemNote = ''; render(); break;
+      case 'del-item': st.draft.items.splice(+t.getAttribute('data-i'), 1); render(); break;
+      case 'export': exportData(); break;
+      case 'import': $('importFile').click(); break;
+      case 'add-samples': {
+        var added = 0;
+        samples().forEach(function (s) {
+          if (!db.patients.some(function (x) { return x.chartNo === s.chartNo; })) { db.patients.push(s); added++; }
+        });
+        save();
+        flash(added ? '가상 환자 ' + added + '명을 넣었습니다.' : '가상 환자가 이미 모두 있습니다.');
+        render(); break;
+      }
+      case 'ask-wipe': st.confirm = { text: '이 기기의 환자 ' + db.patients.length + '명과 진료 기록을 모두 지웁니다. 먼저 백업 파일을 저장했는지 확인하세요.', yes: '모두 지우기', act: 'wipe' }; st.flash = null; render(); window.scrollTo(0, 0); break;
+      case 'ask-del-patient': st.confirm = { text: p.chartNo + ' ' + p.name + ' 환자와 진료 기록 ' + p.visits.length + '건을 삭제합니다.', yes: '삭제', act: 'del-patient' }; st.flash = null; render(); window.scrollTo(0, 0); break;
+      case 'ask-del-visit': st.confirm = { text: '이 진료 기록을 삭제합니다.', yes: '삭제', act: 'del-visit', id: t.getAttribute('data-id') }; st.flash = null; render(); window.scrollTo(0, 0); break;
+      case 'confirm-yes': doConfirm(); break;
+      case 'confirm-no': st.confirm = null; pendingImport = null; render(); break;
+    }
+  });
+
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'q') { st.q = t.value; renderList(); return; }
+    if (t.id === 'itemNote') { st.itemNote = t.value; return; }
+    var f = t.getAttribute && t.getAttribute('data-f');
+    if (f && st.draft) st.draft[f] = t.type === 'checkbox' ? t.checked : t.value;
+  });
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    var f = t.getAttribute && t.getAttribute('data-f');
+    if (f && st.draft) st.draft[f] = t.type === 'checkbox' ? t.checked : t.value;
+    if (t.id === 'exLang') { st.exLang = t.value; render(); }
+    if (t.id === 'exVisit') { st.exVisit = t.value; render(); }
+    if (t.id === 'ppLang') { st.ppLang = t.value; render(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.target.id === 'itemNote' && e.key === 'Enter') { e.preventDefault(); var b = document.querySelector('[data-act="add-item"]'); if (b) b.click(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
